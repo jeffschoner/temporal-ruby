@@ -26,7 +26,7 @@ module Temporal
         @commands = []
         @marker_ids = Set.new
         @releases = {}
-        @patch_ids = Set.new
+        @patches = {}
         @remaining_patch_ids = Set.new
         @side_effects = []
         @command_tracker = Hash.new { |hash, key| hash[key] = CommandStateMachine.new }
@@ -77,9 +77,9 @@ module Temporal
         # been used by the end of this window.
         remaining_patch_ids.delete(patch_id)
 
-        track_patch(patch_id, deprecated) unless patch_ids.include?(patch_id)
+        track_patch(patch_id, deprecated)
 
-        patch_ids.include?(patch_id)
+        patches.key?(patch_id)
       end
 
       def next_side_effect
@@ -110,7 +110,7 @@ module Temporal
 
       private
 
-      attr_reader :dispatcher, :command_tracker, :marker_ids, :side_effects, :releases, :patch_ids, :remaining_patch_ids
+      attr_reader :dispatcher, :command_tracker, :marker_ids, :side_effects, :releases, :patches, :remaining_patch_ids
 
       def next_event_id
         @last_event_id += 1
@@ -382,9 +382,9 @@ module Temporal
         when RELEASE_MARKER
           releases[details] = true
         when PATCH_MARKER
-          patch_ids.add(details[:patch_id])
-          unless details[:deprecated]
-            remaining_patch_ids.add(details[:patch_id])
+          patches[details["patch_id"]] = details["deprecated"]
+          unless details["deprecated"]
+            remaining_patch_ids.add(details["patch_id"])
           end
         else
           raise UnsupportedMarkerType, event.type
@@ -402,14 +402,17 @@ module Temporal
       end
 
       def track_patch(patch_id, deprecated)
-        if !replay?
+        if replay? && deprecated && patches.key?(patch_id) && !patches[patch_id]
+          Temporal.logger.info("Replayed a non-deprecated patch (#{patch_id}) from workflow history on " \
+            "workflow code that declares it as deprecated. This patch is not ready to be removed.")
+        elsif !patches.key?(patch_id)
           # New patch, add then create new command
-          patch_ids.add(patch_id)
+          patches[patch_id] = deprecated
           schedule(Command::RecordMarker.new(
             name: PATCH_MARKER,
             details: {
-              patch_id: patch_id,
-              deprecated: deprecated
+              "patch_id" => patch_id,
+              "deprecated" => deprecated
             }
           ))
         end
