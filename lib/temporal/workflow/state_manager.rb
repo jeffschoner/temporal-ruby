@@ -19,9 +19,6 @@ module Temporal
       class UnsupportedEvent < Temporal::InternalError; end
       class UnsupportedMarkerType < Temporal::InternalError; end
 
-      # This is serialized into patch marker events in workflow histories
-      PatchMarkerDetails = Struct.new(:patch_id, :deprecated, keyword_init: true)
-
       attr_reader :commands, :local_time
 
       def initialize(dispatcher)
@@ -80,9 +77,9 @@ module Temporal
         # been used by the end of this window.
         remaining_patch_ids.delete(patch_id)
 
-        track_patch(patch_id, deprecated) unless patch_ids.includes?(patch_id)
+        track_patch(patch_id, deprecated) unless patch_ids.include?(patch_id)
 
-        patch_ids.includes?(patch_id)
+        patch_ids.include?(patch_id)
       end
 
       def next_side_effect
@@ -385,9 +382,9 @@ module Temporal
         when RELEASE_MARKER
           releases[details] = true
         when PATCH_MARKER
-          patch_ids.add(details.patch_id)
-          unless details.deprecated
-            remaining_patch_ids.add(details.patch_id)
+          patch_ids.add(details[:patch_id])
+          unless details[:deprecated]
+            remaining_patch_ids.add(details[:patch_id])
           end
         else
           raise UnsupportedMarkerType, event.type
@@ -410,10 +407,10 @@ module Temporal
           patch_ids.add(patch_id)
           schedule(Command::RecordMarker.new(
             name: PATCH_MARKER,
-            details: PatchMarkerDetails.new(
+            details: {
               patch_id: patch_id,
               deprecated: deprecated
-            )
+            }
           ))
         end
       end

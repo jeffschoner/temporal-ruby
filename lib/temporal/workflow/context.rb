@@ -56,11 +56,11 @@ module Temporal
       end
 
       def patched?(patch_id)
-        state_manager.patched?(patch_id, false)
+        state_manager.patched?(patch_id.to_s, false)
       end
 
       def deprecate_patch(patch_id)
-        state_manager.patched?(patch_id, true)
+        state_manager.patched?(patch_id.to_s, true)
 
         nil
       end
