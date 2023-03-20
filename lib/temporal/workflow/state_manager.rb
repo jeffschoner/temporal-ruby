@@ -383,9 +383,10 @@ module Temporal
         when RELEASE_MARKER
           releases[details] = true
         when PATCH_MARKER
-          patches[details["patch_id"]] = details["deprecated"]
-          unless details["deprecated"]
-            remaining_patch_ids.add(details["patch_id"])
+          patch_id, deprecated = PatchMarkerDetails.from_hash(details)
+          patches[patch_id] = deprecated
+          unless deprecated
+            remaining_patch_ids.add(patch_id)
           end
         else
           raise UnsupportedMarkerType, event.type
@@ -414,13 +415,28 @@ module Temporal
           patches[patch_id] = deprecated
           schedule(Command::RecordMarker.new(
             name: PATCH_MARKER,
-            details: {
-              "patch_id" => patch_id,
-              "deprecated" => deprecated
-            }
+            details: PatchMarkerDetails.to_hash(patch_id, deprecated)
           ))
         end
       end
+    end
+
+    class PatchMarkerDetails
+      def self.from_hash(h)
+        [h[PATCH_ID_FIELD], h[DEPRECATED_FIELD]]
+      end
+
+      def self.to_hash(patch_id, deprecated)
+        {
+          PATCH_ID_FIELD => patch_id,
+          DEPRECATED_FIELD => deprecated
+        }
+      end
+
+      private
+
+      PATCH_ID_FIELD = "patch_id".freeze
+      DEPRECATED_FIELD = "deprecated".freeze
     end
   end
 end
