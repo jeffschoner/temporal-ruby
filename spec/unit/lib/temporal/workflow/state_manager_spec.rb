@@ -6,6 +6,8 @@ require 'temporal/errors'
 describe Temporal::Workflow::StateManager do
 
   describe '#schedule' do
+    let(:metadata) { Fabricate(:workflow_task_metadata) }
+
     class MyWorkflow < Temporal::Workflow; end
 
     # These are all "terminal" commands
@@ -22,7 +24,7 @@ describe Temporal::Workflow::StateManager do
       ),
     ].each do |terminal_command|
       it "fails to validate if #{terminal_command.class} is not the last command scheduled" do
-        state_manager = described_class.new(Temporal::Workflow::Dispatcher.new)
+        state_manager = described_class.new(Temporal::Workflow::Dispatcher.new, metadata)
 
         next_command = Temporal::Workflow::Command::RecordMarker.new(
           name: Temporal::Workflow::StateManager::RELEASE_MARKER,

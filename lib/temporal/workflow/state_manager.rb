@@ -21,7 +21,7 @@ module Temporal
 
       attr_reader :commands, :local_time
 
-      def initialize(dispatcher)
+      def initialize(dispatcher, metadata)
         @dispatcher = dispatcher
         @commands = []
         @marker_ids = Set.new
@@ -33,6 +33,7 @@ module Temporal
         @last_event_id = 0
         @local_time = nil
         @replay = false
+        @metadata = metadata.to_h
       end
 
       def replay?
@@ -110,7 +111,7 @@ module Temporal
 
       private
 
-      attr_reader :dispatcher, :command_tracker, :marker_ids, :side_effects, :releases, :patches, :remaining_patch_ids
+      attr_reader :dispatcher, :metadata, :command_tracker, :marker_ids, :side_effects, :releases, :patches, :remaining_patch_ids
 
       def next_event_id
         @last_event_id += 1
@@ -403,8 +404,11 @@ module Temporal
 
       def track_patch(patch_id, deprecated)
         if replay? && deprecated && patches.key?(patch_id) && !patches[patch_id]
-          Temporal.logger.info("Replayed a non-deprecated patch (#{patch_id}) from workflow history on " \
-            "workflow code that declares it as deprecated. This patch is not ready to be removed.")
+          Temporal.logger.info("Replayed a non-deprecated patch history event against " \
+            "workflow code that declares it as deprecated. This patch is not ready to be removed.",
+            metadata.merge({
+              patch_id: patch_id,
+            }))
         elsif !patches.key?(patch_id)
           # New patch, add then create new command
           patches[patch_id] = deprecated
