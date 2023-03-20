@@ -14,9 +14,13 @@ module Temporal
 
       SIDE_EFFECT_MARKER = 'SIDE_EFFECT'.freeze
       RELEASE_MARKER = 'RELEASE'.freeze
+      PATCH_MARKER = 'PATCH'.freeze
 
       class UnsupportedEvent < Temporal::InternalError; end
       class UnsupportedMarkerType < Temporal::InternalError; end
+
+      # This is serialized into patch marker events in workflow histories
+      PatchMarkerDetails = Struct.new(:patch_id, :deprecated, keyword_init: true)
 
       attr_reader :commands, :local_time
 
@@ -25,6 +29,8 @@ module Temporal
         @commands = []
         @marker_ids = Set.new
         @releases = {}
+        @patch_ids = Set.new
+        @remaining_patch_ids = Set.new
         @side_effects = []
         @command_tracker = Hash.new { |hash, key| hash[key] = CommandStateMachine.new }
         @last_event_id = 0
@@ -69,6 +75,16 @@ module Temporal
         releases[release_name]
       end
 
+      def patched?(patch_id, deprecated)
+        # Delete any non-deprecated patch IDs so that we can check they have all
+        # been used by the end of this window.
+        remaining_patch_ids.delete(patch_id)
+
+        track_patch(patch_id, deprecated) unless patch_ids.includes?(patch_id)
+
+        patch_ids.includes?(patch_id)
+      end
+
       def next_side_effect
         side_effects.shift
       end
@@ -86,11 +102,18 @@ module Temporal
         history_window.events.each do |event|
           apply_event(event)
         end
+
+        if remaining_patch_ids.any?
+          raise NonDeterministicWorkflowError,
+            "One or more non-deprecated patches (#{remaining_patch_ids.join(",")}) present in " \
+            "workflow history were not checked. Before removing a patch, deprecate it and wait " \
+            "until all workflows started without the patch have completed."
+        end
       end
 
       private
 
-      attr_reader :dispatcher, :command_tracker, :marker_ids, :side_effects, :releases
+      attr_reader :dispatcher, :command_tracker, :marker_ids, :side_effects, :releases, :patch_ids, :remaining_patch_ids
 
       def next_event_id
         @last_event_id += 1
@@ -222,7 +245,11 @@ module Temporal
 
         when 'MARKER_RECORDED'
           state_machine.complete
-          handle_marker(event.id, event.attributes.marker_name, from_details_payloads(event.attributes.details['data']))
+          handle_marker(
+            event.id,
+            event.attributes.marker_name,
+            from_details_payloads(event.attributes.details['data'])
+          )
 
         when 'WORKFLOW_EXECUTION_SIGNALED'
           # relies on Signal#== for matching in Dispatcher
@@ -357,6 +384,11 @@ module Temporal
           side_effects << [id, details]
         when RELEASE_MARKER
           releases[details] = true
+        when PATCH_MARKER
+          patch_ids.add(details.patch_id)
+          unless details.deprecated
+            remaining_patch_ids.add(details.patch_id)
+          end
         else
           raise UnsupportedMarkerType, event.type
         end
@@ -372,6 +404,19 @@ module Temporal
         end
       end
 
+      def track_patch(patch_id, deprecated)
+        if !replay?
+          # New patch, add then create new command
+          patch_ids.add(patch_id)
+          schedule(Command::RecordMarker.new(
+            name: PATCH_MARKER,
+            details: PatchMarkerDetails.new(
+              patch_id: patch_id,
+              deprecated: deprecated
+            )
+          ))
+        end
+      end
     end
   end
 end

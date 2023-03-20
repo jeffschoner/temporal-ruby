@@ -55,6 +55,16 @@ module Temporal
         metadata.headers
       end
 
+      def patched?(patch_id)
+        state_manager.patched?(patch_id, false)
+      end
+
+      def deprecate_patch(patch_id)
+        state_manager.patched?(patch_id, true)
+
+        nil
+      end
+
       def has_release?(release_name)
         state_manager.release?(release_name.to_s)
       end
