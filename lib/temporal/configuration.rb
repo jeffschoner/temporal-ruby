@@ -15,7 +15,8 @@ module Temporal
     Execution = Struct.new(:namespace, :task_queue, :timeouts, :headers, :search_attributes, keyword_init: true)
 
     attr_reader :timeouts, :error_handlers
-    attr_accessor :connection_type, :converter, :use_error_serialization_v2, :host, :port, :credentials, :identity,
+    attr_writer :identity
+    attr_accessor :connection_type, :converter, :use_error_serialization_v2, :host, :port, :credentials,
                   :logger, :metrics_adapter, :namespace, :task_queue, :headers, :search_attributes, :header_propagators,
                   :payload_codec
 
@@ -106,7 +107,7 @@ module Temporal
         host: host,
         port: port,
         credentials: credentials,
-        identity: identity || default_identity
+        identity: identity
       ).freeze
     end
 
@@ -127,6 +128,10 @@ module Temporal
 
     def header_propagator_chain
       Middleware::HeaderPropagatorChain.new(header_propagators)
+    end
+
+    def identity
+      @identity || default_identity
     end
 
     private
