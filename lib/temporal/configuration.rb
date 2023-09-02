@@ -18,7 +18,7 @@ module Temporal
     attr_writer :identity
     attr_accessor :connection_type, :converter, :use_error_serialization_v2, :host, :port, :credentials,
                   :logger, :metrics_adapter, :namespace, :task_queue, :headers, :search_attributes, :header_propagators,
-                  :payload_codec
+                  :payload_codec, :use_sticky_task_queues
 
     # See https://docs.temporal.io/blog/activity-timeouts/ for general docs.
     # We want an infinite execution timeout for cron schedules and other perpetual workflows.
@@ -83,6 +83,7 @@ module Temporal
       @identity = nil
       @search_attributes = {}
       @header_propagators = []
+      @use_sticky_task_queues = true
     end
 
     def on_error(&block)
