@@ -24,7 +24,7 @@ module Temporal
       MAX_FAILED_ATTEMPTS = 1
       LEGACY_QUERY_KEY = :legacy_query
 
-      def initialize(task, namespace, workflow_lookup, middleware_chain, workflow_middleware_chain, config, binary_checksum)
+      def initialize(task, namespace, workflow_lookup, middleware_chain, workflow_middleware_chain, config, binary_checksum, executor_cache, task_queue, sticky_task_queue)
         @task = task
         @namespace = namespace
         @metadata = Metadata.generate_workflow_task_metadata(task, namespace)
@@ -35,6 +35,9 @@ module Temporal
         @workflow_middleware_chain = workflow_middleware_chain
         @config = config
         @binary_checksum = binary_checksum
+        @executor_cache = executor_cache
+        @task_queue = task_queue
+        @sticky_task_queue = sticky_task_queue
       end
 
       def process
@@ -53,11 +56,20 @@ module Temporal
         # We only need to track the stack trace if this is a stack trace query
         track_stack_trace = queries.values.map(&:query_type).include?(StackTraceTracker::STACK_TRACE_QUERY_NAME)
 
-        # TODO: For sticky workflows we need to cache the Executor instance
-        executor = Workflow::Executor.new(workflow_class, history, metadata, config, track_stack_trace, workflow_middleware_chain)
+        if executor_cache
+          executor = executor_cache.get(metadata.workflow_run_id)
+          if executor.nil?
+            # If the executor is not in the sticky queue, do nothing. This will cause the server to time out this task,
+            # and retry on the normal task queue.
+            return
+          end
+
+        else
+          executor = Workflow::Executor.new(workflow_class, metadata, config, track_stack_trace, workflow_middleware_chain)
+        end
 
         commands = middleware_chain.invoke(metadata) do
-          executor.run
+          executor.run(history)
         end
 
         query_results = executor.process_queries(queries)
@@ -80,7 +92,7 @@ module Temporal
       private
 
       attr_reader :task, :namespace, :task_token, :workflow_name, :workflow_class,
-        :middleware_chain, :workflow_middleware_chain, :metadata, :config, :binary_checksum
+        :middleware_chain, :workflow_middleware_chain, :metadata, :config, :binary_checksum, :sticky, :task_queue, :sticky_task_queue
 
       def connection
         @connection ||= Temporal::Connection.generate(config.for_connection)
@@ -133,7 +145,9 @@ module Temporal
           task_token: task_token,
           commands: commands,
           binary_checksum: binary_checksum,
-          query_results: query_results
+          query_results: query_results,
+          task_queue: task_queue,
+          sticky_task_queue: sticky_task_queue
         )
       end
 

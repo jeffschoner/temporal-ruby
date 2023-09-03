@@ -24,11 +24,22 @@ module Temporal
         @workflow_middleware = workflow_middleware
         @shutting_down = false
         @options = DEFAULT_OPTIONS.merge(options)
+
+        if config.use_sticky_task_queues
+          @sticky_task_queue = "#{config.identity}:#{SecureRandom.uuid}"
+          @executor_cache = ExecutorCache.new
+        else
+          @sticky_task_queue = nil
+          @executor_cache = nil
+        end
       end
 
       def start
         @shutting_down = false
-        @thread = Thread.new(&method(:poll_loop))
+        @thread = Thread.new { poll_loop(sticky: false) }
+        if sticky_task_queue
+          @sticky_thread = Thread.new { poll_loop(sticky: true) }
+        end
       end
 
       def stop_polling
@@ -46,12 +57,14 @@ module Temporal
         end
 
         thread.join
+        sticky_thread.join
         thread_pool.shutdown
       end
 
       private
 
-      attr_reader :namespace, :task_queue, :connection, :workflow_lookup, :config, :middleware, :workflow_middleware, :options, :thread
+      attr_reader :namespace, :task_queue, :connection, :workflow_lookup, :config, :middleware, :workflow_middleware,
+        :options, :thread, :sticky_thread, :sticky_task_queue
 
       def connection
         @connection ||= Temporal::Connection.generate(config.for_connection)
@@ -61,9 +74,9 @@ module Temporal
         @shutting_down
       end
 
-      def poll_loop
+      def poll_loop(sticky:)
         last_poll_time = Time.now
-        metrics_tags = { namespace: namespace, task_queue: task_queue }.freeze
+        metrics_tags = { namespace: namespace, task_queue: task_queue, sticky: sticky }.freeze
 
         loop do
           thread_pool.wait_for_available_threads
@@ -72,9 +85,13 @@ module Temporal
 
           time_diff_ms = ((Time.now - last_poll_time) * 1000).round
           Temporal.metrics.timing(Temporal::MetricKeys::WORKFLOW_POLLER_TIME_SINCE_LAST_POLL, time_diff_ms, metrics_tags)
-          Temporal.logger.debug("Polling workflow task queue", { namespace: namespace, task_queue: task_queue })
+          Temporal.logger.debug("Polling workflow task queue", {
+            namespace: namespace,
+            task_queue: task_queue,
+            sticky: sticky ? sticky_task_queue : nil
+          })
 
-          task = poll_for_task
+          task = poll_for_task(sticky: sticky)
           last_poll_time = Time.now
 
           Temporal.metrics.increment(
@@ -84,17 +101,22 @@ module Temporal
 
           next unless task&.workflow_type
 
-          thread_pool.schedule { process(task) }
+          thread_pool.schedule { process(task, sticky) }
         end
       end
 
-      def poll_for_task
-        connection.poll_workflow_task_queue(namespace: namespace, task_queue: task_queue, binary_checksum: binary_checksum)
+      def poll_for_task(sticky:)
+        connection.poll_workflow_task_queue(
+          namespace: namespace,
+          task_queue: task_queue,
+          binary_checksum: binary_checksum,
+          sticky_task_queue: sticky ? sticky_task_queue : nil
+        )
       rescue ::GRPC::Cancelled
         # We're shutting down and we've already reported that in the logs
         nil
       rescue StandardError => error
-        Temporal.logger.error("Unable to poll Workflow task queue", { namespace: namespace, task_queue: task_queue, error: error.inspect })
+        Temporal.logger.error("Unable to poll Workflow task queue", { namespace: namespace, task_queue: task_queue, sticky: sticky ? sticky_task_queue : nil, error: error.inspect })
         Temporal::ErrorHandler.handle(error, config)
 
         sleep(poll_retry_seconds)
@@ -102,11 +124,11 @@ module Temporal
         nil
       end
 
-      def process(task)
+      def process(task, sticky)
         middleware_chain = Middleware::Chain.new(middleware)
         workflow_middleware_chain = Middleware::Chain.new(workflow_middleware)
 
-        TaskProcessor.new(task, namespace, workflow_lookup, middleware_chain, workflow_middleware_chain, config, binary_checksum).process
+        TaskProcessor.new(task, namespace, workflow_lookup, middleware_chain, workflow_middleware_chain, config, binary_checksum, executor_cache, task_queue, sticky_task_queue).process
       end
 
       def thread_pool

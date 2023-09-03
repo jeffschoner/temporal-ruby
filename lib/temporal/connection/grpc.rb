@@ -190,13 +190,11 @@ module Temporal
         client.get_workflow_execution_history(request, deadline: deadline)
       end
 
-      def poll_workflow_task_queue(namespace:, task_queue:, binary_checksum:)
+      def poll_workflow_task_queue(namespace:, task_queue:, binary_checksum:, sticky_task_queue:)
         request = Temporalio::Api::WorkflowService::V1::PollWorkflowTaskQueueRequest.new(
           identity: identity,
           namespace: namespace,
-          task_queue: Temporalio::Api::TaskQueue::V1::TaskQueue.new(
-            name: task_queue
-          ),
+          task_queue: serialize_task_queue(task_queue: task_queue, sticky_task_queue: sticky_task_queue),
           binary_checksum: binary_checksum
         )
 
@@ -221,14 +219,18 @@ module Temporal
         client.respond_query_task_completed(request)
       end
 
-      def respond_workflow_task_completed(namespace:, task_token:, commands:, binary_checksum:, query_results: {})
+      def respond_workflow_task_completed(namespace:, task_token:, commands:, binary_checksum:, task_queue:, sticky_task_queue:, query_results: {})
         request = Temporalio::Api::WorkflowService::V1::RespondWorkflowTaskCompletedRequest.new(
           namespace: namespace,
           identity: identity,
           task_token: task_token,
           commands: Array(commands).map { |(_, command)| Serializer.serialize(command) },
           query_results: query_results.transform_values { |value| Serializer.serialize(value) },
-          binary_checksum: binary_checksum
+          binary_checksum: binary_checksum,
+          sticky_attributes: sticky_task_queue ? Temporalio::Api::TaskQueue::V1::StickyExecutionAttributes.new(
+            worker_task_queue: serialize_task_queue(task_queue: task_queue, sticky_task_queue: sticky_task_queue),
+            schedule_to_start_timeout: 10
+          ) : nil
         )
 
         client.respond_workflow_task_completed(request)
@@ -674,6 +676,16 @@ module Temporal
         status = Temporalio::Api::Enums::V1::WorkflowExecutionStatus.resolve(sym)
 
         Temporalio::Api::Filter::V1::StatusFilter.new(status: status)
+      end
+
+      def serialize_task_queue(task_queue:, sticky_task_queue:)
+        Temporalio::Api::TaskQueue::V1::TaskQueue.new(
+          name: sticky_task_queue ? sticky_task_queue : task_queue,
+          kind: sticky_task_queue ?
+            Temporalio::Api::Enums::V1::TaskQueueKind::TASK_QUEUE_KIND_STICKY :
+            Temporalio::Api::Enums::V1::TaskQueueKind::TASK_QUEUE_KIND_NORMAL,
+          #normal_name: sticky_task_queue ? task_queue : nil
+        )
       end
     end
   end

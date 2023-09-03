@@ -138,7 +138,7 @@ module Temporal
     private
 
     def default_identity
-      hostname = `hostname`
+      hostname = `hostname`.strip
       pid = Process.pid
 
       "#{pid}@#{hostname}".freeze

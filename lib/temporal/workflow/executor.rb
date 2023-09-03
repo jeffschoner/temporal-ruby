@@ -12,28 +12,28 @@ module Temporal
   class Workflow
     class Executor
       # @param workflow_class [Class]
-      # @param history [Workflow::History]
       # @param task_metadata [Metadata::WorkflowTask]
       # @param config [Configuration]
       # @param track_stack_trace [Boolean]
-      def initialize(workflow_class, history, task_metadata, config, track_stack_trace, middleware_chain)
+      def initialize(workflow_class, task_metadata, config, track_stack_trace, middleware_chain)
         @workflow_class = workflow_class
         @dispatcher = Dispatcher.new
         @query_registry = QueryRegistry.new
         @state_manager = StateManager.new(dispatcher)
-        @history = history
         @task_metadata = task_metadata
         @config = config
         @track_stack_trace = track_stack_trace
         @middleware_chain = middleware_chain
       end
 
-      def run
-        dispatcher.register_handler(
-          History::EventTarget.workflow,
-          'started',
-          &method(:execute_workflow)
-        )
+      def run(history, add_start_to_dispatcher)
+        if add_start_to_dispatcher
+          dispatcher.register_handler(
+            History::EventTarget.workflow,
+            'started',
+            &method(:execute_workflow)
+          )
+        end
 
         while window = history.next_window
           state_manager.apply(window)
