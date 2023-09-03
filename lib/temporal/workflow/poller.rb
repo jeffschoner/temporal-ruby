@@ -2,6 +2,7 @@ require 'grpc/errors'
 require 'temporal/connection'
 require 'temporal/thread_pool'
 require 'temporal/middleware/chain'
+require 'temporal/workflow/executor_cache'
 require 'temporal/workflow/task_processor'
 require 'temporal/error_handler'
 require 'temporal/metric_keys'
@@ -27,7 +28,7 @@ module Temporal
 
         if config.use_sticky_task_queues
           @sticky_task_queue = "#{config.identity}:#{SecureRandom.uuid}"
-          @executor_cache = ExecutorCache.new
+          @executor_cache = Temporal::Workflow::ExecutorCache.new
         else
           @sticky_task_queue = nil
           @executor_cache = nil
@@ -39,6 +40,8 @@ module Temporal
         @thread = Thread.new { poll_loop(sticky: false) }
         if sticky_task_queue
           @sticky_thread = Thread.new { poll_loop(sticky: true) }
+        else
+          @sticky_thread = nil
         end
       end
 
@@ -57,7 +60,7 @@ module Temporal
         end
 
         thread.join
-        sticky_thread.join
+        sticky_thread.join unless sticky_thread.nil?
         thread_pool.shutdown
       end
 
