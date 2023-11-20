@@ -1,5 +1,6 @@
 require 'fiber'
 
+require 'temporal/errors'
 require 'temporal/workflow/context'
 require 'temporal/workflow/dispatcher'
 require 'temporal/workflow/query_registry'

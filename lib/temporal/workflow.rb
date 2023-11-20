@@ -16,6 +16,8 @@ module Temporal
       result = workflow.execute(*input)
 
       context.complete(result) unless context.completed?
+    rescue WorkflowCanceled => error
+      context.cancel_workflow(error.details)
     rescue StandardError, ScriptError => error
       Temporal.logger.error("Workflow execution failed", context.metadata.to_h.merge(error: error.inspect))
       Temporal.logger.debug(error.backtrace.join("\n"))

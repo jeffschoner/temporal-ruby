@@ -13,6 +13,7 @@ module Temporal
       FailWorkflow = Struct.new(:exception, keyword_init: true)
       SignalExternalWorkflow = Struct.new(:namespace, :execution, :signal_name, :input, :child_workflow_only, keyword_init: true)
       UpsertSearchAttributes = Struct.new(:search_attributes, keyword_init: true)
+      CancelWorkflow = Struct.new(:details, keyword_init: true)
 
       # only these commands are supported right now
       SCHEDULE_ACTIVITY_TYPE = :schedule_activity
@@ -25,6 +26,7 @@ module Temporal
       FAIL_WORKFLOW_TYPE = :fail_workflow
       SIGNAL_EXTERNAL_WORKFLOW_TYPE = :signal_external_workflow
       UPSERT_SEARCH_ATTRIBUTES_TYPE = :upsert_search_attributes
+      CANCEL_WORKFLOW_TYPE = :cancel_workflow
 
       COMMAND_CLASS_MAP = {
         SCHEDULE_ACTIVITY_TYPE => ScheduleActivity,
@@ -37,6 +39,7 @@ module Temporal
         FAIL_WORKFLOW_TYPE => FailWorkflow,
         SIGNAL_EXTERNAL_WORKFLOW_TYPE => SignalExternalWorkflow,
         UPSERT_SEARCH_ATTRIBUTES_TYPE => UpsertSearchAttributes,
+        CANCEL_WORKFLOW_TYPE => CancelWorkflow
       }.freeze
 
       def self.generate(type, **args)

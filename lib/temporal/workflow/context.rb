@@ -249,6 +249,12 @@ module Temporal
         completed!
       end
 
+      def cancel_workflow(details = nil)
+        command = Command::CancelWorkflow.new(details: details)
+        schedule_command(command)
+        completed!
+      end
+
       def continue_as_new(*input, **args)
         options = args.delete(:options) || {}
         input << args unless args.empty?
@@ -382,6 +388,16 @@ module Temporal
 
       def on_query(query, &block)
         query_registry.register(query, &block)
+      end
+
+      def on_cancel(&block)
+        state_manager.register_cancellation_handler do |cause|
+          proc_with_final_cancel = proc do
+            details = block.call(cause)
+            cancel_workflow(details)
+          end
+          call_in_fiber(proc_with_final_cancel)
+        end
       end
 
       def cancel_activity(activity_id)

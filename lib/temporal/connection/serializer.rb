@@ -13,6 +13,7 @@ require 'temporal/connection/serializer/signal_external_workflow'
 require 'temporal/connection/serializer/upsert_search_attributes'
 require 'temporal/connection/serializer/query_answer'
 require 'temporal/connection/serializer/query_failure'
+require 'temporal/connection/serializer/cancel_workflow'
 
 module Temporal
   module Connection
@@ -24,6 +25,7 @@ module Temporal
         Workflow::Command::RecordMarker => Serializer::RecordMarker,
         Workflow::Command::StartTimer => Serializer::StartTimer,
         Workflow::Command::CancelTimer => Serializer::CancelTimer,
+        Workflow::Command::CancelWorkflow => Serializer::CancelWorkflow,
         Workflow::Command::CompleteWorkflow => Serializer::CompleteWorkflow,
         Workflow::Command::ContinueAsNew => Serializer::ContinueAsNew,
         Workflow::Command::FailWorkflow => Serializer::FailWorkflow,

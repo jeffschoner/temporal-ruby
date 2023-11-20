@@ -84,6 +84,8 @@ module Temporal
     end
   end
 
+  class DuplicateCancellationHandlerError < InternalError; end
+
   class NamespaceNotActiveFailure < ApiError; end
   class ClientVersionNotSupportedFailure < ApiError; end
   class FeatureVersionNotSupportedFailure < ApiError; end

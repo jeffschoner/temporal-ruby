@@ -51,10 +51,42 @@ module Temporal
         ) do |name, input|
           @first_task_signals << [name, input]
         end
+
+        # Cancellation handlers suffer from the same problem as signals handlers in that they
+        # cannot be registered in workflow code before it starts running. However, because
+        # workflow cancellation support was added after this problematic pattern had been
+        # discovered and fixed for signal handlers, it is implemented correctly from the
+        # beginning without an affordance for ensuring backward compatible determinism. Moreover,
+        # workflow cancellation must only be handled one time by a single cancellation handler,
+        # which further simplifies how this code is structured in comparison to signals.
+        @canceled_cause = nil
+        @cancellation_handler = nil
+        dispatcher.register_handler(History::EventTarget.workflow, 'canceled') do |cause|
+          # Cancellation handler should only be called one time because a workflow run cannot
+          # be cancelled multiple times
+          next if @canceled_cause
+
+          # cause is a string (empty if no reason set), so this will always be non-nil after cancellation
+          @canceled_cause = cause
+          @cancellation_handler.call(cause) unless @cancellation_handler.nil?
+        end
       end
 
       def replay?
         @replay
+      end
+
+      def register_cancellation_handler(&block)
+        unless @cancellation_handler.nil?
+          raise DuplicateCancellationHandlerError, 'A cancellation handler may only be registered once per workflow run'
+        end
+
+        @cancellation_handler = block
+
+        # If it was canceled before a handler was registered, call it now
+        if !@canceled_cause.nil?
+          @cancellation_handler.call(@canceled_cause)
+        end
       end
 
       def schedule(command)
@@ -214,6 +246,8 @@ module Temporal
           context_string = case previous_command
                            when Command::CompleteWorkflow
                              'The workflow completed'
+                           when Command::CancelWorkflow
+                             'The workflow canceled'
                            when Command::FailWorkflow
                              'The workflow failed'
                            when Command::ContinueAsNew
@@ -320,7 +354,11 @@ module Temporal
           dispatch(history_target, 'canceled')
 
         when 'WORKFLOW_EXECUTION_CANCEL_REQUESTED'
-          # todo
+          dispatch(
+            History::EventTarget.workflow,
+            'canceled',
+            event.attributes.cause
+          )
 
         when 'WORKFLOW_EXECUTION_CANCELED'
           # todo
@@ -375,7 +413,7 @@ module Temporal
 
         when 'CHILD_WORKFLOW_EXECUTION_CANCELED'
           state_machine.cancel
-          dispatch(history_target, 'failed', Temporal::Workflow::Errors.generate_error(event.attributes.failure))
+          dispatch(history_target, 'failed', Temporal::WorkflowCanceled.new(from_details_payloads(event.attributes.details)))
 
         when 'CHILD_WORKFLOW_EXECUTION_TIMED_OUT'
           state_machine.time_out
@@ -436,6 +474,8 @@ module Temporal
             History::EventTarget::UPSERT_SEARCH_ATTRIBUTES_REQUEST_TYPE
           when Command::SignalExternalWorkflow
             History::EventTarget::EXTERNAL_WORKFLOW_TYPE
+          when Command::CancelWorkflow
+            History::EventTarget::WORKFLOW_TYPE
           end
 
         History::EventTarget.new(command_id, target_type)
