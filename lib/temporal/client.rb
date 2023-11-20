@@ -255,7 +255,7 @@ module Temporal
       when 'WORKFLOW_EXECUTION_TERMINATED'
         raise Temporal::WorkflowTerminated
       when 'WORKFLOW_EXECUTION_CANCELED'
-        raise Temporal::WorkflowCanceled
+        raise Temporal::WorkflowCanceled.new(ResultConverter.from_details_payloads(closed_event.attributes.details))
       when 'WORKFLOW_EXECUTION_FAILED'
         raise Temporal::Workflow::Errors.generate_error(closed_event.attributes.failure)
       when 'WORKFLOW_EXECUTION_CONTINUED_AS_NEW'
@@ -336,6 +336,24 @@ module Temporal
         run_id: run_id,
         reason: reason,
         details: details
+      )
+    end
+
+    # Request cancellation of a running workflow
+    #
+    # @param workflow_id [String]
+    # @param namespace [String, nil] use a default namespace when `nil`
+    # @param run_id [String, nil]
+    # @param reason [String, nil] a cancellation reason to be recorded in workflow's history
+    #   for reference
+    def cancel_workflow(workflow_id, namespace: nil, run_id: nil, reason: nil)
+      namespace ||= Temporal.configuration.namespace
+
+      connection.request_cancel_workflow_execution(
+        namespace: namespace,
+        workflow_id: workflow_id,
+        run_id: run_id,
+        reason: reason
       )
     end
 

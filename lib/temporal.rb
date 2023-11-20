@@ -24,6 +24,7 @@ module Temporal
                  :await_workflow_result,
                  :reset_workflow,
                  :terminate_workflow,
+                 :cancel_workflow,
                  :fetch_workflow_execution_info,
                  :complete_activity,
                  :fail_activity,

@@ -48,7 +48,13 @@ module Temporal
 
   class WorkflowTimedOut < WorkflowError; end
   class WorkflowTerminated < WorkflowError; end
-  class WorkflowCanceled < WorkflowError; end
+  class WorkflowCanceled < WorkflowError
+    def initialize(details)
+      @details = details
+    end
+
+    attr_reader :details
+  end
 
   # Errors where the workflow run didn't complete but not an error for the whole workflow.
   class WorkflowRunError < Error; end
