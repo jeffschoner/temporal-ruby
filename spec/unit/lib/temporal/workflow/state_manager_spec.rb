@@ -433,6 +433,80 @@ describe Temporal::Workflow::StateManager do
         end
       end
     end
+
+    context 'workflow cancellation' do
+      let(:cause) { 'some cause' }
+      let(:history) do
+        Temporal::Workflow::History.new(
+          [
+            Fabricate(:api_workflow_execution_cancel_requested, event_id: 2, cause: cause)
+          ]
+        )
+      end
+
+      it 'dispatched' do
+        called = false
+
+        state_manager.register_cancellation_handler do |cause_received|
+          called = true
+          expect(cause_received).to eq(cause)
+        end
+
+        expect(called).to eq(false)
+
+        state_manager.apply(history.next_window)
+
+        expect(called).to eq(true)
+      end
+
+      it 'dispatched before registration' do
+        called = false
+
+        state_manager.apply(history.next_window)
+
+        expect(called).to eq(false)
+
+        # This would typically done in workflow called back on a fiber after
+        # the cancel requested event was processed. This can happen if a workflow
+        # is immediately cancelled after being started.
+        state_manager.register_cancellation_handler do |cause_received|
+          called = true
+          expect(cause_received).to eq(cause)
+        end
+
+        expect(called).to eq(true)
+      end
+
+      it 'cannot register handler twice' do
+        state_manager.register_cancellation_handler { }
+        expect do
+          state_manager.register_cancellation_handler { }
+        end.to raise_error(Temporal::DuplicateCancellationHandlerError)
+      end
+
+      context 'canceled twice' do
+        let(:history) do
+          Temporal::Workflow::History.new(
+            [
+              Fabricate(:api_workflow_execution_cancel_requested, event_id: 2),
+              Fabricate(:api_workflow_execution_cancel_requested, event_id: 3)
+            ]
+          )
+        end
+
+        it 'not dispatched twice' do
+          called = 0
+
+          state_manager.register_cancellation_handler do
+            called += 1
+          end
+
+          state_manager.apply(history.next_window)
+
+          expect(called).to eq(1)
+        end
+      end
+    end
   end
 
   describe '#history_size' do

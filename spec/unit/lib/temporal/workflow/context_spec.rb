@@ -504,4 +504,11 @@ describe Temporal::Workflow::Context do
       end
     end
   end
+
+  describe '#on_cancel' do
+    it 'registers for cancellation' do
+      expect(state_manager).to receive(:register_cancellation_handler).once
+      workflow_context.on_cancel { }
+    end
+  end
 end

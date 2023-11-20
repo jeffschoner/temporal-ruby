@@ -228,3 +228,14 @@ Fabricator(:api_workflow_execution_signaled_event, from: :api_history_event) do
     )
   end
 end
+
+Fabricator(:api_workflow_execution_cancel_requested, from: :api_history_event) do
+  event_type { Temporalio::Api::Enums::V1::EventType::EVENT_TYPE_WORKFLOW_EXECUTION_CANCEL_REQUESTED }
+  transient :cause
+  workflow_execution_cancel_requested_event_attributes do |attrs|
+    Temporalio::Api::History::V1::WorkflowExecutionCancelRequestedEventAttributes.new(
+      cause: attrs[:cause] || 'default',
+      identity: 'test-worker@test-host'
+    )
+  end
+end
