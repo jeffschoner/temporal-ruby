@@ -63,7 +63,7 @@ module Temporal
       end
 
       @pool.each do |thread|
-        thread.raise(WorkerShuttingDownError.new)
+        thread.raise(WorkerShuttingDownError.new("Worker '#{@config.identity}' is shutting down"))
       end
 
       @pool.each do |thread|
@@ -152,7 +152,7 @@ module Temporal
               item.sleep_for_delay
             end
 
-            # Include this in the begin/rescue block for CancelError because jobs can
+            # Include this in the begin/rescue block for ActivityCanceled because jobs can
             # opt into being cancelable by adding their own Thread.handle_interrupt
             # block or have these errors raised when calling .heartbeat.
             item.call_job
