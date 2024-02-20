@@ -19,7 +19,7 @@ class WaitForWorkflow < Temporal::Workflow
     # Run an activity but with a max time limit by starting a timer. This activity
     # will not complete before the timer, which may result in a failed activity task after the
     # workflow is completed.
-    long_running_future = LongRunningActivity.execute(15, 0.1)
+    long_running_future = LongRunningActivity.execute(15, 0.1, "ignore")
     timeout_timer = workflow.start_timer(1)
     workflow.wait_for_any(timeout_timer, long_running_future)
 

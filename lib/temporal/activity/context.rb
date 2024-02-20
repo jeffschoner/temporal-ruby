@@ -1,8 +1,9 @@
 # This context class is available in the activity implementation
 # and provides context and methods for interacting with Temporal
 #
-require 'temporal/uuid'
 require 'temporal/activity/async_token'
+require 'temporal/errors'
+require 'temporal/uuid'
 
 module Temporal
   class Activity
@@ -18,6 +19,7 @@ module Temporal
         @async = false
         @cancel_requested = false
         @last_heartbeat_throttled = false
+        @execution_thread = Thread.current
       end
 
       attr_reader :heartbeat_check_scheduled, :cancel_requested, :last_heartbeat_throttled
@@ -80,6 +82,22 @@ module Temporal
           end
         end
 
+        # ActivityInterruptedError can be raised whenever hearbeating is done. This will raise if the worker
+        # is shutting down or if cancellation of the activity has been requested. These errors can be rescued
+        # to change default early exit behavior.
+        #
+        # Rescuing WorkerShuttingDownError will block the worker from shutting down. Do note that this only
+        # applies to INT and TERM signals received by the process. Other signals like KILL will immediately
+        # terminate the process without this error being raised.
+        #
+        # Rescuing ActivityCanceled will prevent the activity from entering a canceled state. If the activity
+        # returns normally, the attempt will be considered successful. If the activity raises some other error,
+        # the attempt will be considered to have been failed, and be subject to any retry policy.
+        #
+        # In both cases, consider rescuing the error, performing any clean up steps, and then re-raising the
+        # error to allow for timely worker shutdown or activity cancelation.
+        Thread.handle_interrupt(ActivityInterruptedError => :immediate) do; end
+
         # Return back the context so that .cancel_requested works similarly to before when the
         # GRPC response was returned back directly
         self
@@ -114,7 +132,7 @@ module Temporal
 
       private
 
-      attr_reader :connection, :metadata, :thread_pool, :config, :heartbeat_mutex, :last_heartbeat_details
+      attr_reader :connection, :metadata, :thread_pool, :config, :heartbeat_mutex, :last_heartbeat_details, :execution_thread
 
       def task_token
         metadata.task_token
@@ -138,9 +156,13 @@ module Temporal
             namespace: metadata.namespace,
             task_token: task_token,
             details: details)
-          if response.cancel_requested
+          if response.cancel_requested && !@cancel_requested
             logger.info('Activity has been canceled', metadata.to_h)
             @cancel_requested = true
+
+            # Raise onto the saved execution thread since this code can either run synchronously when
+            # a .heartbeat call is made, or in a background thread due to heartbeat throttling
+            execution_thread.raise(ActivityCanceled.new('Activity cancellation received through heartbeat'))
           end
         rescue => error
           Temporal::ErrorHandler.handle(error, config, metadata: metadata)

@@ -1,4 +1,5 @@
 require 'temporal/activity/context'
+require 'temporal/errors'
 require 'temporal/metadata/activity'
 require 'temporal/thread_pool'
 
@@ -35,7 +36,9 @@ describe Temporal::Activity::Context do
     context 'cancellation' do
       let(:heartbeat_response) { Fabricate(:api_record_activity_heartbeat_response, cancel_requested: true) }
       it 'sets when cancelled' do
-        subject.heartbeat
+        expect do
+          subject.heartbeat
+        end.to raise_error(Temporal::ActivityCanceled)
         expect(subject.cancel_requested).to be(true)
       end
     end
