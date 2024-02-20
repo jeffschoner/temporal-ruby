@@ -80,6 +80,8 @@ module Temporal
     private
 
     class Item
+      class CanceledError; end
+
       def initialize(job, delay, cancelable)
         @job = job
         @fire_at = if delay > 0
@@ -102,7 +104,7 @@ module Temporal
 
           @canceled = true
           unless @assigned_thread.nil?
-            @assigned_thread.raise(CancelError.new)
+            @assigned_thread.raise(CanceledError.new)
           end
         end
       end
@@ -165,12 +167,9 @@ module Temporal
             report_metrics
           end
         end
-      rescue Temporal::ActivityCanceled
+      rescue Temporal::ActivityInterruptedError, Item::CanceledError
         # Ignore these errors because this should only occur if it was raised on a thread that
-        # is already exiting
-      rescue Temporal::WorkerShuttingDownError
-        # Ignore these errors since it requests that the thread shuts down which it will
-        # do upon returning
+        # is already exiting for activity cancellation, worker shutdown, or heartbeat cancellation
       rescue StandardError => e
         Temporal.logger.error('Error reached top of thread pool thread', { error: e.inspect })
         Temporal::ErrorHandler.handle(e, @config)
