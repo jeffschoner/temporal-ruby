@@ -63,16 +63,16 @@ module Temporal
       end
 
       @pool.each do |thread|
-        thread.raise(ExitError.new)
+        thread.raise(WorkerShuttingDownError.new)
       end
 
       @pool.each do |thread|
         begin
           thread.join
-        rescue ExitError
+        rescue WorkerShuttingDownError
           # This should almost never happen, but can safely be ignored. It can occur if a thread pool is
-          # shutdown immediately after it is started. In this case, the ExitError could be raised into
-          # the thread before it has entered the handle_interrupt(:never) block.
+          # shutdown immediately after it is started. In this case, the WorkerShuttingDownError could
+          # be raised into the thread before it has entered the handle_interrupt(:never) block.
         end
       end
     end
@@ -95,7 +95,7 @@ module Temporal
       attr_reader :canceled
 
       def cancel
-        raise ThreadPoolError.new("Items from this thread pool are not cancelable") if @mutex.nil?
+        raise ActivityInterruptedError.new("Items from this thread pool are not cancelable") if @mutex.nil?
 
         @mutex.synchronize do
           return if @canceled
@@ -138,12 +138,12 @@ module Temporal
       begin
         # Nest handle_interrupt blocks so that this code can only be interrupted in 3 places:
         # 1. While waiting on a new item from the queue
-        # 2. Job code itself that has opted into being interrupted by CancelError or ExitError
+        # 2. Job code itself that has opted into being interrupted by ActivityInterruptedError
         # 3. Right before exiting
-        Thread.handle_interrupt(ThreadPoolError => :never) do
+        Thread.handle_interrupt(ActivityInterruptedError => :never) do
           loop do
             item = nil
-            Thread.handle_interrupt(ThreadPoolError => :immediate) do
+            Thread.handle_interrupt(ActivityInterruptedError => :immediate) do
               item = @queue.pop
               @mutex.synchronize do
                 @shutting_down&.signal
@@ -165,10 +165,10 @@ module Temporal
             report_metrics
           end
         end
-      rescue Temporal::CancelError
+      rescue Temporal::ActivityCanceled
         # Ignore these errors because this should only occur if it was raised on a thread that
         # is already exiting
-      rescue Temporal::ExitError
+      rescue Temporal::WorkerShuttingDownError
         # Ignore these errors since it requests that the thread shuts down which it will
         # do upon returning
       rescue StandardError => e
