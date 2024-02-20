@@ -3,7 +3,6 @@ require 'temporal/connection'
 require 'temporal/error_handler'
 require 'temporal/metric_keys'
 require 'temporal/middleware/chain'
-require 'temporal/scheduled_thread_pool'
 require 'temporal/thread_pool'
 
 module Temporal
@@ -26,6 +25,7 @@ module Temporal
 
       def start
         @shutting_down = false
+        start_thread_pools
         @thread = Thread.new(&method(:poll_loop))
       end
 
@@ -50,7 +50,7 @@ module Temporal
 
       private
 
-      attr_reader :namespace, :task_queue, :activity_lookup, :config, :middleware, :options, :thread
+      attr_reader :namespace, :task_queue, :activity_lookup, :config, :middleware, :options, :thread, :thread_pool, :heartbeat_thread_pool
 
       def connection
         @connection ||= Temporal::Connection.generate(config.for_connection)
@@ -115,9 +115,10 @@ module Temporal
         @options[:poll_retry_seconds]
       end
 
-      def thread_pool
-        @thread_pool ||= ThreadPool.new(
+      def start_thread_pools
+        @thread_pool = ThreadPool.new(
           options[:thread_pool_size],
+          true, # cancelable
           @config,
           {
             pool_name: 'activity_task_poller',
@@ -125,11 +126,10 @@ module Temporal
             task_queue: task_queue
           }
         )
-      end
 
-      def heartbeat_thread_pool
-        @heartbeat_thread_pool ||= ScheduledThreadPool.new(
+        @heartbeat_thread_pool = ThreadPool.new(
           options[:thread_pool_size],
+          true, # cancelable
           @config,
           {
             pool_name: 'heartbeat',

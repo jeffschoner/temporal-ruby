@@ -2,6 +2,7 @@ require 'temporal/activity/poller'
 require 'temporal/configuration'
 require 'temporal/metric_keys'
 require 'temporal/middleware/entry'
+require 'temporal/thread_pool'
 
 describe Temporal::Activity::Poller do
   let(:connection) { instance_double('Temporal::Connection::GRPC', cancel_polling_request: nil) }
@@ -12,7 +13,7 @@ describe Temporal::Activity::Poller do
     instance_double(Temporal::ThreadPool, wait_for_available_threads: nil, shutdown: nil)
   end
   let(:heartbeat_thread_pool) do
-    instance_double(Temporal::ScheduledThreadPool, shutdown: nil)
+    instance_double(Temporal::ThreadPool, shutdown: nil)
   end
   let(:config) { Temporal::Configuration.new }
   let(:middleware_chain) { instance_double(Temporal::Middleware::Chain) }
@@ -23,8 +24,8 @@ describe Temporal::Activity::Poller do
 
   before do
     allow(Temporal::Connection).to receive(:generate).and_return(connection)
-    allow(Temporal::ThreadPool).to receive(:new).and_return(thread_pool)
-    allow(Temporal::ScheduledThreadPool).to receive(:new).and_return(heartbeat_thread_pool)
+    allow(Temporal::ThreadPool).to receive(:new).with(20, true, config, { namespace: namespace, task_queue: task_queue, pool_name: 'activity_task_poller' }).and_return(thread_pool)
+    allow(Temporal::ThreadPool).to receive(:new).with(20, true, config, { namespace: namespace, task_queue: task_queue, pool_name: 'heartbeat' }).and_return(heartbeat_thread_pool)
     allow(Temporal::Middleware::Chain).to receive(:new).and_return(middleware_chain)
     allow(Temporal.metrics).to receive(:timing)
     allow(Temporal.metrics).to receive(:increment)

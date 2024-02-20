@@ -2,7 +2,7 @@ require 'temporal/activity/task_processor'
 require 'temporal/configuration'
 require 'temporal/metric_keys'
 require 'temporal/middleware/chain'
-require 'temporal/scheduled_thread_pool'
+require 'temporal/thread_pool'
 
 describe Temporal::Activity::TaskProcessor do
   subject { described_class.new(task, task_queue, namespace, lookup, middleware_chain, config, heartbeat_thread_pool) }
@@ -23,7 +23,7 @@ describe Temporal::Activity::TaskProcessor do
   let(:connection) { instance_double('Temporal::Connection::GRPC') }
   let(:middleware_chain) { Temporal::Middleware::Chain.new }
   let(:config) { Temporal::Configuration.new }
-  let(:heartbeat_thread_pool) { Temporal::ScheduledThreadPool.new(2, config, {}) }
+  let(:heartbeat_thread_pool) { Temporal::ThreadPool.new(2, true, config, {}) }
   let(:input) { %w[arg1 arg2] }
 
   describe '#process' do
@@ -124,9 +124,7 @@ describe Temporal::Activity::TaskProcessor do
         end
 
         context 'when there is an outstanding scheduled heartbeat' do
-          let(:heartbeat_check_scheduled) do
-            Temporal::ScheduledThreadPool::ScheduledItem.new(id: :foo, canceled: false)
-          end
+          let(:heartbeat_check_scheduled) { Temporal::ThreadPool::Item.new(proc { }, 0, true) }
           it 'it gets canceled' do
             subject.process
 

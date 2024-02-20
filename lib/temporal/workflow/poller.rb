@@ -120,6 +120,7 @@ module Temporal
       def thread_pool
         @thread_pool ||= ThreadPool.new(
           options[:thread_pool_size],
+          false, # not cancelable
           @config,
           {
             pool_name: 'workflow_task_poller',

@@ -1,6 +1,6 @@
 require 'temporal/activity/context'
 require 'temporal/metadata/activity'
-require 'temporal/scheduled_thread_pool'
+require 'temporal/thread_pool'
 
 describe Temporal::Activity::Context do
   let(:connection) { instance_double('Temporal::Connection::GRPC') }
@@ -8,7 +8,7 @@ describe Temporal::Activity::Context do
   let(:metadata) { Temporal::Metadata::Activity.new(**metadata_hash) }
   let(:config) { Temporal::Configuration.new }
   let(:task_token) { SecureRandom.uuid }
-  let(:heartbeat_thread_pool) { Temporal::ScheduledThreadPool.new(1, config, {}) }
+  let(:heartbeat_thread_pool) { Temporal::ThreadPool.new(1, true, config, {}) }
   let(:heartbeat_response) { Fabricate(:api_record_activity_heartbeat_response) }
 
   subject { described_class.new(connection, metadata, config, heartbeat_thread_pool) }
@@ -61,7 +61,9 @@ describe Temporal::Activity::Context do
           subject.heartbeat(iteration: 1)
           subject.heartbeat(iteration: 2) # skipped because 3 will overwrite
           subject.heartbeat(iteration: 3)
-          sleep 0.1
+          # Need to wait a bit more than two throttle intervals (0.1 * 0.9 * 2) because
+          # we wait 0.08s after 1, then 0.08s after 3 is sent before 4 can be sent.
+          sleep 0.2
           subject.heartbeat(iteration: 4)
 
           # Shutdown to drain remaining threads

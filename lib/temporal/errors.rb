@@ -50,6 +50,20 @@ module Temporal
   class WorkflowTerminated < WorkflowError; end
   class WorkflowCanceled < WorkflowError; end
 
+  # Thread pool related errors
+
+  # If you are ok with your activity code being interrupted, you can add a Thread.handle_interrupt
+  # block for these error types.
+  class ThreadPoolError < Error; end
+
+  # This is raised when an activity is canceled. This can occur when the activity heartbeats
+  # on a background thread, and discovers the activity has been canceled on Temporal server.
+  class CancelError < ThreadPoolError; end
+
+  # This is raised when the thread pool is shutting down as part of worker shutdown. This
+  # typically occurs when the worker receives a TERM or INT signal.
+  class ExitError < ThreadPoolError; end
+
   # Errors where the workflow run didn't complete but not an error for the whole workflow.
   class WorkflowRunError < Error; end
 

@@ -41,6 +41,7 @@ module Temporal
 
       def heartbeat(details = nil)
         logger.debug('Activity heartbeat', metadata.to_h)
+
         # Heartbeat throttling limits the number of calls made to Temporal server, reducing load on the server
         # and improving activity performance. The first heartbeat in an activity will always be sent immediately.
         # After that, a timer is scheduled on a background thread. While this check heartbeat thread is scheduled,
@@ -150,7 +151,7 @@ module Temporal
       def schedule_check_heartbeat(delay)
         return nil if delay <= 0
 
-        heartbeat_thread_pool.schedule([metadata.workflow_run_id, metadata.id, metadata.attempt], delay) do
+        heartbeat_thread_pool.schedule(delay) do
           details = heartbeat_mutex.synchronize do
             @heartbeat_check_scheduled = nil
             # Check to see if there is a saved heartbeat. If heartbeat was not called while this was waiting,
