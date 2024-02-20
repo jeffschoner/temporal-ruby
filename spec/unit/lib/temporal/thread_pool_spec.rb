@@ -194,6 +194,31 @@ describe Temporal::ThreadPool do
 
         expect(times).to eq(0)
       end
+
+      # TODO: Plumb this through activity heartbeating
+      it 'tasks can opt into worker shutdown interruption' do
+        times = 0
+        shutting_down = false
+
+        thread_pool.schedule do
+          times += 1
+          begin
+            Thread.handle_interrupt(Temporal::WorkerShuttingDownError => :immediate) do
+              loop do
+                sleep 0.1
+              end
+            end
+          rescue Temporal::WorkerShuttingDownError
+            shutting_down = true
+            raise
+          end
+        end
+
+        thread_pool.shutdown
+
+        expect(times).to eq(1)
+        expect(shutting_down).to eq(true)
+      end
     end
   end
 end
