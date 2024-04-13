@@ -23,7 +23,7 @@ describe Temporal::Activity::TaskProcessor do
   let(:connection) { instance_double('Temporal::Connection::GRPC') }
   let(:middleware_chain) { Temporal::Middleware::Chain.new }
   let(:config) { Temporal::Configuration.new }
-  let(:heartbeat_thread_pool) { Temporal::ThreadPool.new(2, true, config, {}) }
+  let(:heartbeat_thread_pool) { Temporal::ThreadPool.new(2, config, {}) }
   let(:input) { %w[arg1 arg2] }
 
   describe '#process' do

@@ -8,7 +8,7 @@ describe Temporal::Activity::Context do
   let(:metadata) { Temporal::Metadata::Activity.new(**metadata_hash) }
   let(:config) { Temporal::Configuration.new }
   let(:task_token) { SecureRandom.uuid }
-  let(:heartbeat_thread_pool) { Temporal::ThreadPool.new(1, true, config, {}) }
+  let(:heartbeat_thread_pool) { Temporal::ThreadPool.new(1, config, {}) }
   let(:heartbeat_response) { Fabricate(:api_record_activity_heartbeat_response) }
 
   subject { described_class.new(connection, metadata, config, heartbeat_thread_pool) }

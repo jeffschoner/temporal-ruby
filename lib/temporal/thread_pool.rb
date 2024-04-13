@@ -12,7 +12,7 @@ module Temporal
   class ThreadPool
     attr_reader :size
 
-    def initialize(size, cancelable, config, metrics_tags)
+    def initialize(size, config, metrics_tags)
       @size = size
       @metrics_tags = metrics_tags
       @queue = Queue.new
@@ -23,7 +23,6 @@ module Temporal
       @pool = Array.new(size) do |_i|
         Thread.new { poll }
       end
-      @cancelable = cancelable
       @shutting_down = nil
     end
 
@@ -37,8 +36,8 @@ module Temporal
       end
     end
 
-    def schedule(delay = 0, &block)
-      item = Item.new(block, delay, @cancelable)
+    def schedule(delay = 0, cancelable: true, &block)
+      item = Item.new(block, delay, cancelable)
 
       @mutex.synchronize do
         @available_threads -= 1
@@ -97,7 +96,7 @@ module Temporal
       attr_reader :canceled
 
       def cancel
-        raise ActivityInterruptedError.new("Items from this thread pool are not cancelable") if @mutex.nil?
+        raise ClientError.new("Thread pool item is not cancelable") if @mutex.nil?
 
         @mutex.synchronize do
           return if @canceled

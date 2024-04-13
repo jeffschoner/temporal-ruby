@@ -89,7 +89,7 @@ module Temporal
 
           next unless task&.workflow_type
 
-          thread_pool.schedule { process(task) }
+          thread_pool.schedule(cancelable: false) { process(task) }
         end
       end
 
@@ -120,7 +120,6 @@ module Temporal
       def thread_pool
         @thread_pool ||= ThreadPool.new(
           options[:thread_pool_size],
-          false, # not cancelable
           @config,
           {
             pool_name: 'workflow_task_poller',

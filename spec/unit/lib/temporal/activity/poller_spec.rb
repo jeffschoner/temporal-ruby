@@ -24,8 +24,8 @@ describe Temporal::Activity::Poller do
 
   before do
     allow(Temporal::Connection).to receive(:generate).and_return(connection)
-    allow(Temporal::ThreadPool).to receive(:new).with(20, true, config, { namespace: namespace, task_queue: task_queue, pool_name: 'activity_task_poller' }).and_return(thread_pool)
-    allow(Temporal::ThreadPool).to receive(:new).with(20, true, config, { namespace: namespace, task_queue: task_queue, pool_name: 'heartbeat' }).and_return(heartbeat_thread_pool)
+    allow(Temporal::ThreadPool).to receive(:new).with(20, config, { namespace: namespace, task_queue: task_queue, pool_name: 'activity_task_poller' }).and_return(thread_pool)
+    allow(Temporal::ThreadPool).to receive(:new).with(20, config, { namespace: namespace, task_queue: task_queue, pool_name: 'heartbeat' }).and_return(heartbeat_thread_pool)
     allow(Temporal::Middleware::Chain).to receive(:new).and_return(middleware_chain)
     allow(Temporal.metrics).to receive(:timing)
     allow(Temporal.metrics).to receive(:increment)

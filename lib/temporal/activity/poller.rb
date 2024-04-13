@@ -118,7 +118,6 @@ module Temporal
       def start_thread_pools
         @thread_pool = ThreadPool.new(
           options[:thread_pool_size],
-          true, # cancelable
           @config,
           {
             pool_name: 'activity_task_poller',
@@ -129,7 +128,6 @@ module Temporal
 
         @heartbeat_thread_pool = ThreadPool.new(
           options[:thread_pool_size],
-          true, # cancelable
           @config,
           {
             pool_name: 'heartbeat',
