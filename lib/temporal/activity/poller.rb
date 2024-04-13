@@ -9,6 +9,7 @@ module Temporal
   class Activity
     class Poller
       DEFAULT_OPTIONS = {
+        task_slots: 20,
         poll_retry_seconds: 0
       }.freeze
 
@@ -21,6 +22,9 @@ module Temporal
         @middleware = middleware
         @shutting_down = false
         @options = DEFAULT_OPTIONS.merge(options)
+        @mutex = Mutex.new
+        @slot_available = ConditionVariable.new
+        @available_slots = @options[:task_slots]
       end
 
       def start
@@ -47,7 +51,8 @@ module Temporal
 
       private
 
-      attr_reader :namespace, :task_queue, :activity_lookup, :config, :middleware, :options, :thread, :thread_pool
+      attr_reader :namespace, :task_queue, :activity_lookup, :config, :middleware, :options, :thread, :thread_pool,
+                  :mutex, :slot_available
 
       def connection
         @connection ||= Temporal::Connection.generate(config.for_connection)
@@ -65,6 +70,14 @@ module Temporal
         metrics_tags = { namespace: namespace, task_queue: task_queue }.freeze
 
         loop do
+          mutex.synchronize do
+            while @available_slots <= 0
+              slot_available.wait(mutex)
+            end
+
+            @available_slots -= 1
+          end
+
           return if shutting_down?
 
           time_diff_ms = ((Time.now - last_poll_time) * 1000).round
@@ -79,9 +92,21 @@ module Temporal
             metrics_tags.merge(received_task: (!task.nil?).to_s)
           )
 
-          next unless task&.activity_type
+          if !task&.activity_type
+            mutex.synchronize do
+              @available_slots += 1
+            end
+            next
+          end
 
-          thread_pool.schedule { process(task) }
+          thread_pool.schedule do
+            process(task)
+
+            mutex.synchronize do
+              @available_slots += 1
+              slot_available.signal
+            end
+          end
         end
       end
 

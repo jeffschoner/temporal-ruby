@@ -264,6 +264,7 @@ describe Temporal::Worker do
           an_instance_of(Temporal::ThreadPool),
           [],
           [],
+          task_slots: 10,
           binary_checksum: nil,
           poll_retry_seconds: 0
         )
@@ -279,6 +280,7 @@ describe Temporal::Worker do
           an_instance_of(Temporal::ThreadPool),
           [],
           [],
+          task_slots: 10,
           binary_checksum: nil,
           poll_retry_seconds: 0
         )
@@ -293,6 +295,7 @@ describe Temporal::Worker do
           config,
           an_instance_of(Temporal::ThreadPool),
           [],
+          task_slots: 20,
           poll_retry_seconds: 0
         )
         .and_return(activity_poller_1)
@@ -306,6 +309,7 @@ describe Temporal::Worker do
           config,
           an_instance_of(Temporal::ThreadPool),
           [],
+          task_slots: 20,
           poll_retry_seconds: 0
         )
         .and_return(activity_poller_2)
@@ -334,7 +338,7 @@ describe Temporal::Worker do
           an_instance_of(Temporal::Configuration),
           an_instance_of(Temporal::ThreadPool),
           [],
-          {poll_retry_seconds: 0}
+          {task_slots: 10, poll_retry_seconds: 0}
         )
         .and_return(activity_poller)
 
@@ -383,6 +387,7 @@ describe Temporal::Worker do
           an_instance_of(Temporal::ThreadPool),
           [],
           [],
+          task_slots: 10,
           binary_checksum: binary_checksum,
           poll_retry_seconds: 0
         )
@@ -408,7 +413,7 @@ describe Temporal::Worker do
           an_instance_of(Temporal::Configuration),
           an_instance_of(Temporal::ThreadPool),
           [],
-          {poll_retry_seconds: 10}
+          {task_slots: 20, poll_retry_seconds: 10, task_slots: 20}
         )
         .and_return(activity_poller)
 
@@ -432,7 +437,7 @@ describe Temporal::Worker do
           an_instance_of(Temporal::ThreadPool),
           [],
           [],
-          {binary_checksum: nil, poll_retry_seconds: 10}
+          {binary_checksum: nil, poll_retry_seconds: 10, task_slots: 10}
         )
         .and_return(workflow_poller)
 
@@ -481,6 +486,7 @@ describe Temporal::Worker do
             an_instance_of(Temporal::ThreadPool),
             [entry_1],
             [entry_3],
+            task_slots: 10,
             binary_checksum: nil,
             poll_retry_seconds: 0
           )
@@ -495,6 +501,7 @@ describe Temporal::Worker do
             config,
             an_instance_of(Temporal::ThreadPool),
             [entry_2],
+            task_slots: 20,
             poll_retry_seconds: 0
           )
           .and_return(activity_poller_1)

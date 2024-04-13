@@ -23,8 +23,8 @@ module Temporal
     #   See https://docs.temporal.io/docs/tctl/how-to-use-tctl/#recovery-from-bad-deployment----auto-reset-workflow
     def initialize(
       config = Temporal.configuration,
-      activity_thread_pool_size: 20,
-      workflow_thread_pool_size: 10,
+      activity_thread_pool_size: Temporal::Activity::Poller::DEFAULT_OPTIONS[:task_slots],
+      workflow_thread_pool_size: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:task_slots],
       binary_checksum: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:binary_checksum],
       activity_poll_retry_seconds: Temporal::Activity::Poller::DEFAULT_OPTIONS[:poll_retry_seconds],
       workflow_poll_retry_seconds: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:poll_retry_seconds]
@@ -38,16 +38,16 @@ module Temporal
       @activity_middleware = []
       @shutting_down = false
       @activity_poller_options = {
+        task_slots: activity_thread_pool_size,
         poll_retry_seconds: activity_poll_retry_seconds
       }
       @workflow_poller_options = {
+        task_slots: workflow_thread_pool_size,
         binary_checksum: binary_checksum,
         poll_retry_seconds: workflow_poll_retry_seconds
       }
       @start_stop_mutex = Mutex.new
       @thread_pool = nil
-      @activity_slots_per_task_queue = activity_thread_pool_size
-      @workflow_slots_per_task_queue = workflow_thread_pool_size
     end
 
     def register_workflow(workflow_class, options = {})
@@ -110,7 +110,9 @@ module Temporal
       @start_stop_mutex.synchronize do
         return if shutting_down? # Handle the case where stop method grabbed the mutex first
 
-        size = workflows.size * @workflow_slots_per_task_queue + activities.size * @activity_slots_per_task_queue * 2
+        # 1 thread per workflow task queue
+        # 2 threads per activity activity task queue: 1 for activity execution, 1 for heartbeat throttling
+        size = workflows.size * workflow_poller_options[:task_slots] + activities.size * activity_poller_options[:task_slots] * 2
 
         @thread_pool = ThreadPool.new(
           size,
