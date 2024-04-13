@@ -9,15 +9,15 @@ module Temporal
   class Activity
     class Poller
       DEFAULT_OPTIONS = {
-        thread_pool_size: 20,
         poll_retry_seconds: 0
       }.freeze
 
-      def initialize(namespace, task_queue, activity_lookup, config, middleware = [], options = {})
+      def initialize(namespace, task_queue, activity_lookup, config, thread_pool, middleware = [], options = {})
         @namespace = namespace
         @task_queue = task_queue
         @activity_lookup = activity_lookup
         @config = config
+        @thread_pool = thread_pool
         @middleware = middleware
         @shutting_down = false
         @options = DEFAULT_OPTIONS.merge(options)
@@ -25,7 +25,6 @@ module Temporal
 
       def start
         @shutting_down = false
-        start_thread_pools
         @thread = Thread.new(&method(:poll_loop))
       end
 
@@ -44,13 +43,11 @@ module Temporal
         end
 
         thread.join
-        thread_pool.shutdown
-        heartbeat_thread_pool.shutdown
       end
 
       private
 
-      attr_reader :namespace, :task_queue, :activity_lookup, :config, :middleware, :options, :thread, :thread_pool, :heartbeat_thread_pool
+      attr_reader :namespace, :task_queue, :activity_lookup, :config, :middleware, :options, :thread, :thread_pool
 
       def connection
         @connection ||= Temporal::Connection.generate(config.for_connection)
@@ -68,8 +65,6 @@ module Temporal
         metrics_tags = { namespace: namespace, task_queue: task_queue }.freeze
 
         loop do
-          thread_pool.wait_for_available_threads
-
           return if shutting_down?
 
           time_diff_ms = ((Time.now - last_poll_time) * 1000).round
@@ -108,33 +103,11 @@ module Temporal
       def process(task)
         middleware_chain = Middleware::Chain.new(middleware)
 
-        TaskProcessor.new(task, task_queue, namespace, activity_lookup, middleware_chain, config, heartbeat_thread_pool).process
+        TaskProcessor.new(task, task_queue, namespace, activity_lookup, middleware_chain, config, thread_pool).process
       end
 
       def poll_retry_seconds
         @options[:poll_retry_seconds]
-      end
-
-      def start_thread_pools
-        @thread_pool = ThreadPool.new(
-          options[:thread_pool_size],
-          @config,
-          {
-            pool_name: 'activity_task_poller',
-            namespace: namespace,
-            task_queue: task_queue
-          }
-        )
-
-        @heartbeat_thread_pool = ThreadPool.new(
-          options[:thread_pool_size],
-          @config,
-          {
-            pool_name: 'heartbeat',
-            namespace: namespace,
-            task_queue: task_queue
-          }
-        )
       end
     end
   end

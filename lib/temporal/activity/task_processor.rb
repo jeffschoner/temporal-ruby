@@ -12,7 +12,7 @@ module Temporal
     class TaskProcessor
       include Concerns::Payloads
 
-      def initialize(task, task_queue, namespace, activity_lookup, middleware_chain, config, heartbeat_thread_pool)
+      def initialize(task, task_queue, namespace, activity_lookup, middleware_chain, config, thread_pool)
         @task = task
         @task_queue = task_queue
         @namespace = namespace
@@ -22,7 +22,7 @@ module Temporal
         @activity_class = activity_lookup.find(activity_name)
         @middleware_chain = middleware_chain
         @config = config
-        @heartbeat_thread_pool = heartbeat_thread_pool
+        @thread_pool = thread_pool
       end
 
       def process
@@ -31,7 +31,7 @@ module Temporal
         Temporal.logger.debug("Processing Activity task", metadata.to_h)
         Temporal.metrics.timing(Temporal::MetricKeys::ACTIVITY_TASK_QUEUE_TIME, queue_time_ms, metric_tags)
 
-        context = Activity::Context.new(connection, metadata, config, heartbeat_thread_pool)
+        context = Activity::Context.new(connection, metadata, config, thread_pool)
 
         if !activity_class
           raise ActivityNotRegistered, 'Activity is not registered with this worker'
@@ -69,7 +69,7 @@ module Temporal
       private
 
       attr_reader :task, :task_queue, :namespace, :task_token, :activity_name, :activity_class,
-      :middleware_chain, :metadata, :config, :heartbeat_thread_pool
+      :middleware_chain, :metadata, :config, :thread_pool
 
       def connection
         @connection ||= Temporal::Connection.generate(config.for_connection)

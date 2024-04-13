@@ -4,10 +4,6 @@ require 'temporal/metric_keys'
 # This class implements a ThreadPool with the ability to block until at least one thread
 # becomes available. This allows Pollers to only poll when there's an available thread
 # in the pool.
-#
-# NOTE: There's a minor race condition that can occur between calling
-#       #wait_for_available_threads and #schedule, but should be rare
-#
 module Temporal
   class ThreadPool
     attr_reader :size
@@ -28,12 +24,6 @@ module Temporal
 
     def report_metrics
       Temporal.metrics.gauge(Temporal::MetricKeys::THREAD_POOL_AVAILABLE_THREADS, @available_threads, @metrics_tags)
-    end
-
-    def wait_for_available_threads
-      @mutex.synchronize do
-        @availability.wait(@mutex) while @available_threads <= 0
-      end
     end
 
     def schedule(delay = 0, cancelable: true, &block)

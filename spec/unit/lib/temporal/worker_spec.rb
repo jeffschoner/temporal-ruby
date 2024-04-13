@@ -53,7 +53,7 @@ describe Temporal::Worker do
 
   end
 
-  THREAD_SYNC_DELAY = 0.01
+  THREAD_SYNC_DELAY = 0.1
 
   before do
     # Make sure we don't actually sleep in tests
@@ -261,9 +261,9 @@ describe Temporal::Worker do
           'default-task-queue',
           an_instance_of(Temporal::ExecutableLookup),
           config,
+          an_instance_of(Temporal::ThreadPool),
           [],
           [],
-          thread_pool_size: 10,
           binary_checksum: nil,
           poll_retry_seconds: 0
         )
@@ -276,9 +276,9 @@ describe Temporal::Worker do
           'default-task-queue',
           an_instance_of(Temporal::ExecutableLookup),
           config,
+          an_instance_of(Temporal::ThreadPool),
           [],
           [],
-          thread_pool_size: 10,
           binary_checksum: nil,
           poll_retry_seconds: 0
         )
@@ -291,8 +291,8 @@ describe Temporal::Worker do
           'default-task-queue',
           an_instance_of(Temporal::ExecutableLookup),
           config,
+          an_instance_of(Temporal::ThreadPool),
           [],
-          thread_pool_size: 20,
           poll_retry_seconds: 0
         )
         .and_return(activity_poller_1)
@@ -304,8 +304,8 @@ describe Temporal::Worker do
           'other-task-queue',
           an_instance_of(Temporal::ExecutableLookup),
           config,
+          an_instance_of(Temporal::ThreadPool),
           [],
-          thread_pool_size: 20,
           poll_retry_seconds: 0
         )
         .and_return(activity_poller_2)
@@ -332,8 +332,9 @@ describe Temporal::Worker do
           'default-task-queue',
           an_instance_of(Temporal::ExecutableLookup),
           an_instance_of(Temporal::Configuration),
+          an_instance_of(Temporal::ThreadPool),
           [],
-          {thread_pool_size: 10, poll_retry_seconds: 0}
+          {poll_retry_seconds: 0}
         )
         .and_return(activity_poller)
 
@@ -379,9 +380,9 @@ describe Temporal::Worker do
           'default-task-queue',
           an_instance_of(Temporal::ExecutableLookup),
           an_instance_of(Temporal::Configuration),
+          an_instance_of(Temporal::ThreadPool),
           [],
           [],
-          thread_pool_size: 10,
           binary_checksum: binary_checksum,
           poll_retry_seconds: 0
         )
@@ -405,8 +406,9 @@ describe Temporal::Worker do
           'default-task-queue',
           an_instance_of(Temporal::ExecutableLookup),
           an_instance_of(Temporal::Configuration),
+          an_instance_of(Temporal::ThreadPool),
           [],
-          {thread_pool_size: 20, poll_retry_seconds: 10}
+          {poll_retry_seconds: 10}
         )
         .and_return(activity_poller)
 
@@ -427,9 +429,10 @@ describe Temporal::Worker do
           'default-task-queue',
           an_instance_of(Temporal::ExecutableLookup),
           an_instance_of(Temporal::Configuration),
+          an_instance_of(Temporal::ThreadPool),
           [],
           [],
-          {binary_checksum: nil, poll_retry_seconds: 10, thread_pool_size: 10}
+          {binary_checksum: nil, poll_retry_seconds: 10}
         )
         .and_return(workflow_poller)
 
@@ -475,9 +478,9 @@ describe Temporal::Worker do
             'default-task-queue',
             an_instance_of(Temporal::ExecutableLookup),
             config,
+            an_instance_of(Temporal::ThreadPool),
             [entry_1],
             [entry_3],
-            thread_pool_size: 10,
             binary_checksum: nil,
             poll_retry_seconds: 0
           )
@@ -490,8 +493,8 @@ describe Temporal::Worker do
             'default-task-queue',
             an_instance_of(Temporal::ExecutableLookup),
             config,
+            an_instance_of(Temporal::ThreadPool),
             [entry_2],
-            thread_pool_size: 20,
             poll_retry_seconds: 0
           )
           .and_return(activity_poller_1)

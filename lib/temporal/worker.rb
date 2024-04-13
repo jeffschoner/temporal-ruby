@@ -23,8 +23,8 @@ module Temporal
     #   See https://docs.temporal.io/docs/tctl/how-to-use-tctl/#recovery-from-bad-deployment----auto-reset-workflow
     def initialize(
       config = Temporal.configuration,
-      activity_thread_pool_size: Temporal::Activity::Poller::DEFAULT_OPTIONS[:thread_pool_size],
-      workflow_thread_pool_size: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:thread_pool_size],
+      activity_thread_pool_size: 20,
+      workflow_thread_pool_size: 10,
       binary_checksum: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:binary_checksum],
       activity_poll_retry_seconds: Temporal::Activity::Poller::DEFAULT_OPTIONS[:poll_retry_seconds],
       workflow_poll_retry_seconds: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:poll_retry_seconds]
@@ -38,15 +38,16 @@ module Temporal
       @activity_middleware = []
       @shutting_down = false
       @activity_poller_options = {
-        thread_pool_size: activity_thread_pool_size,
         poll_retry_seconds: activity_poll_retry_seconds
       }
       @workflow_poller_options = {
-        thread_pool_size: workflow_thread_pool_size,
         binary_checksum: binary_checksum,
         poll_retry_seconds: workflow_poll_retry_seconds
       }
       @start_stop_mutex = Mutex.new
+      @thread_pool = nil
+      @activity_slots_per_task_queue = activity_thread_pool_size
+      @workflow_slots_per_task_queue = workflow_thread_pool_size
     end
 
     def register_workflow(workflow_class, options = {})
@@ -109,6 +110,14 @@ module Temporal
       @start_stop_mutex.synchronize do
         return if shutting_down? # Handle the case where stop method grabbed the mutex first
 
+        size = workflows.size * @workflow_slots_per_task_queue + activities.size * @activity_slots_per_task_queue * 2
+
+        @thread_pool = ThreadPool.new(
+          size,
+          @config,
+          {}
+        )
+
         trap_signals
 
         workflows.each_pair do |(namespace, task_queue), lookup|
@@ -139,6 +148,7 @@ module Temporal
           sleep 1
           pollers.each(&:cancel_pending_requests)
           pollers.each(&:wait)
+          @thread_pool.shutdown unless @thread_pool.nil?
         end
         on_stopped_hook
       end.join
@@ -147,7 +157,7 @@ module Temporal
     private
 
     attr_reader :config, :activity_poller_options, :workflow_poller_options,
-                :activities, :workflows, :pollers,
+                :activities, :workflows, :pollers, :thread_pool,
                 :workflow_task_middleware, :workflow_middleware, :activity_middleware
 
     def shutting_down?
@@ -159,12 +169,12 @@ module Temporal
     def on_stopped_hook; end
 
     def workflow_poller_for(namespace, task_queue, lookup)
-      Workflow::Poller.new(namespace, task_queue, lookup.freeze, config, workflow_task_middleware, workflow_middleware,
+      Workflow::Poller.new(namespace, task_queue, lookup.freeze, config, thread_pool, workflow_task_middleware, workflow_middleware,
                            workflow_poller_options)
     end
 
     def activity_poller_for(namespace, task_queue, lookup)
-      Activity::Poller.new(namespace, task_queue, lookup.freeze, config, activity_middleware, activity_poller_options)
+      Activity::Poller.new(namespace, task_queue, lookup.freeze, config, thread_pool, activity_middleware, activity_poller_options)
     end
 
     def executable_registration(executable_class, options)

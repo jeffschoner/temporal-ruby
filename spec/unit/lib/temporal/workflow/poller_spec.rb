@@ -9,6 +9,7 @@ describe Temporal::Workflow::Poller do
   let(:task_queue) { 'test-task-queue' }
   let(:lookup) { instance_double('Temporal::ExecutableLookup') }
   let(:config) { Temporal::Configuration.new }
+  let(:thread_pool) { Temporal::ThreadPool.new(10, config, {})}
   let(:middleware_chain) { instance_double(Temporal::Middleware::Chain) }
   let(:middleware) { [] }
   let(:workflow_middleware_chain) { instance_double(Temporal::Middleware::Chain) }
@@ -23,6 +24,7 @@ describe Temporal::Workflow::Poller do
       task_queue,
       lookup,
       config,
+      thread_pool,
       middleware,
       workflow_middleware,
       {
@@ -218,6 +220,7 @@ describe Temporal::Workflow::Poller do
           task_queue,
           lookup,
           config,
+          thread_pool,
           middleware,
           workflow_middleware,
           {

@@ -7,11 +7,11 @@ require 'temporal/activity/async_token'
 module Temporal
   class Activity
     class Context
-      def initialize(connection, metadata, config, heartbeat_thread_pool)
+      def initialize(connection, metadata, config, thread_pool)
         @connection = connection
         @metadata = metadata
         @config = config
-        @heartbeat_thread_pool = heartbeat_thread_pool
+        @thread_pool = thread_pool
         @last_heartbeat_details = [] # an array to differentiate nil hearbeat from no heartbeat queued
         @heartbeat_check_scheduled = nil
         @heartbeat_mutex = Mutex.new
@@ -114,7 +114,7 @@ module Temporal
 
       private
 
-      attr_reader :connection, :metadata, :heartbeat_thread_pool, :config, :heartbeat_mutex, :last_heartbeat_details
+      attr_reader :connection, :metadata, :thread_pool, :config, :heartbeat_mutex, :last_heartbeat_details
 
       def task_token
         metadata.task_token
@@ -151,7 +151,7 @@ module Temporal
       def schedule_check_heartbeat(delay)
         return nil if delay <= 0
 
-        heartbeat_thread_pool.schedule(delay) do
+        thread_pool.schedule(delay) do
           details = heartbeat_mutex.synchronize do
             @heartbeat_check_scheduled = nil
             # Check to see if there is a saved heartbeat. If heartbeat was not called while this was waiting,

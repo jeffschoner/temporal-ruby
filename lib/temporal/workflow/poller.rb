@@ -10,16 +10,16 @@ module Temporal
   class Workflow
     class Poller
       DEFAULT_OPTIONS = {
-        thread_pool_size: 10,
         binary_checksum: nil,
         poll_retry_seconds: 0
       }.freeze
 
-      def initialize(namespace, task_queue, workflow_lookup, config, middleware = [], workflow_middleware = [], options = {})
+      def initialize(namespace, task_queue, workflow_lookup, config, thread_pool, middleware = [], workflow_middleware = [], options = {})
         @namespace = namespace
         @task_queue = task_queue
         @workflow_lookup = workflow_lookup
         @config = config
+        @thread_pool = thread_pool
         @middleware = middleware
         @workflow_middleware = workflow_middleware
         @shutting_down = false
@@ -46,13 +46,12 @@ module Temporal
         end
 
         thread.join
-        thread_pool.shutdown
       end
 
       private
 
       attr_reader :namespace, :task_queue, :connection, :workflow_lookup, :config, :middleware, :workflow_middleware,
-                  :options, :thread
+                  :options, :thread, :thread_pool
 
       def connection
         @connection ||= Temporal::Connection.generate(config.for_connection)
@@ -70,8 +69,6 @@ module Temporal
         metrics_tags = { namespace: namespace, task_queue: task_queue }.freeze
 
         loop do
-          thread_pool.wait_for_available_threads
-
           return if shutting_down?
 
           time_diff_ms = ((Time.now - last_poll_time) * 1000).round
@@ -115,18 +112,6 @@ module Temporal
 
         TaskProcessor.new(task, task_queue, namespace, workflow_lookup, middleware_chain, workflow_middleware_chain,
                           config, binary_checksum).process
-      end
-
-      def thread_pool
-        @thread_pool ||= ThreadPool.new(
-          options[:thread_pool_size],
-          @config,
-          {
-            pool_name: 'workflow_task_poller',
-            namespace: namespace,
-            task_queue: task_queue
-          }
-        )
       end
 
       def binary_checksum
