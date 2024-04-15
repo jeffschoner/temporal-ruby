@@ -43,6 +43,8 @@ module Temporal
 
         # Do not complete asynchronous activities, these should be completed manually
         respond_completed(result) unless context.async?
+      rescue Temporal::ActivityCanceled => e
+        respond_canceled({message: e.message})
       rescue StandardError, ScriptError => error
         Temporal::ErrorHandler.handle(error, config, metadata: metadata)
 
@@ -91,6 +93,20 @@ module Temporal
         end
       rescue StandardError => error
         Temporal.logger.error("Unable to complete Activity", metadata.to_h.merge(error: error.inspect))
+
+        Temporal::ErrorHandler.handle(error, config, metadata: metadata)
+      end
+
+      def respond_canceled(result)
+        Temporal.logger.info("Activity task canceled", metadata.to_h)
+        log_retry = proc do
+          Temporal.logger.debug("Failed to report activity task cancellation, retrying", metadata.to_h)
+        end
+        Temporal::Connection::Retryer.with_retries(on_retry: log_retry) do
+          connection.respond_activity_task_canceled(namespace: namespace, task_token: task_token, result: result)
+        end
+      rescue StandardError => error
+        Temporal.logger.error("Unable to cancel activity", metadata.to_h.merge(error: error.inspect))
 
         Temporal::ErrorHandler.handle(error, config, metadata: metadata)
       end

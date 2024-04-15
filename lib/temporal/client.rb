@@ -362,13 +362,13 @@ module Temporal
     # @param result [String, Array, nil] activity's return value to be stored in history and
     #   passed back to a workflow
     def complete_activity(async_token, result = nil)
-      details = Activity::AsyncToken.decode(async_token)
+      decoded_token = Activity::AsyncToken.decode(async_token)
 
       connection.respond_activity_task_completed_by_id(
-        namespace: details.namespace,
-        activity_id: details.activity_id,
-        workflow_id: details.workflow_id,
-        run_id: details.run_id,
+        namespace: decoded_token.namespace,
+        activity_id: decoded_token.activity_id,
+        workflow_id: decoded_token.workflow_id,
+        run_id: decoded_token.run_id,
         result: result
       )
     end
@@ -379,16 +379,33 @@ module Temporal
     # @param exception [Exception] activity's failure exception to be stored in history and
     #   raised in a workflow
     def fail_activity(async_token, exception)
-      details = Activity::AsyncToken.decode(async_token)
+      decoded_token = Activity::AsyncToken.decode(async_token)
 
       connection.respond_activity_task_failed_by_id(
-        namespace: details.namespace,
-        activity_id: details.activity_id,
-        workflow_id: details.workflow_id,
-        run_id: details.run_id,
+        namespace: decoded_token.namespace,
+        activity_id: decoded_token.activity_id,
+        workflow_id: decoded_token.workflow_id,
+        run_id: decoded_token.run_id,
         exception: exception
       )
     end
+
+    # Manually cancel an activity
+    #
+    # @param async_token [String] an encoded Temporal::Activity::AsyncToken
+    # @param details activity's cancellation metadata
+    def cancel_activity(async_token, details = nil)
+      decoded_token = Activity::AsyncToken.decode(async_token)
+
+      connection.respond_activity_task_canceled_by_id(
+        namespace: decoded_token.namespace,
+        activity_id: decoded_token.activity_id,
+        workflow_id: decoded_token.workflow_id,
+        run_id: decoded_token.run_id,
+        details: details
+      )
+    end
+
 
     # Fetch workflow's execution history
     #

@@ -285,7 +285,15 @@ module Temporal
       end
 
       def record_activity_task_heartbeat_by_id
-        raise NotImplementedError
+        request = Temporalio::Api::WorkflowService::V1::RecordActivityTaskHeartbeatByIdRequest.new(
+          identity: identity,
+          namespace: namespace,
+          workflow_id: workflow_id,
+          run_id: run_id,
+          activity_id: activity_id,
+          details: to_details_payloads(details)
+        )
+        client.record_activity_task_heartbeat_by_id(request)
       end
 
       def respond_activity_task_completed(namespace:, task_token:, result:)
@@ -342,6 +350,19 @@ module Temporal
         )
         client.respond_activity_task_canceled(request)
       end
+
+      def respond_activity_task_canceled_by_id(namespace:, activity_id:, workflow_id:, run_id:, details: nil)
+        request = Temporalio::Api::WorkflowService::V1::RespondActivityTaskCanceledByIdRequest.new(
+          identity: identity,
+          namespace: namespace,
+          workflow_id: workflow_id,
+          run_id: run_id,
+          activity_id: activity_id,
+          details: to_details_payloads(details)
+        )
+        client.respond_activity_task_canceled_by_id(request)
+      end
+
 
       def respond_activity_task_canceled_by_id
         raise NotImplementedError
