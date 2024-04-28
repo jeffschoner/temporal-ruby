@@ -14,7 +14,7 @@ describe Temporal::ScheduledThreadPool do
     it 'executes one task with zero delay on a thread and exits' do
       times = 0
 
-      thread_pool.schedule(:foo, 0) do
+      thread_pool.schedule(0) do
         times += 1
       end
 
@@ -26,11 +26,11 @@ describe Temporal::ScheduledThreadPool do
     it 'executes tasks with delays in time order' do
       answers = Queue.new
 
-      thread_pool.schedule(:second, 0.2) do
+      thread_pool.schedule(0.2) do
         answers << :second
       end
 
-      thread_pool.schedule(:first, 0.1) do
+      thread_pool.schedule(0.1) do
         answers << :first
       end
 
@@ -44,7 +44,7 @@ describe Temporal::ScheduledThreadPool do
     it 'error does not exit' do
       times = 0
 
-      thread_pool.schedule(:foo, 0) do
+      thread_pool.schedule(0) do
         times += 1
         raise 'foo'
       end
@@ -58,7 +58,7 @@ describe Temporal::ScheduledThreadPool do
       Thread.report_on_exception = false
       times = 0
 
-      thread_pool.schedule(:foo, 0) do
+      thread_pool.schedule(0) do
         times += 1
         raise Exception, 'crash'
       end
@@ -79,17 +79,17 @@ describe Temporal::ScheduledThreadPool do
       answers = Queue.new
       handles = []
 
-      handles << thread_pool.schedule(:foo, 30) do
+      handles << thread_pool.schedule(30) do
         answers << :foo
       end
 
-      handles << thread_pool.schedule(:bar, 30) do
+      handles << thread_pool.schedule(30) do
         answers << :bar
       end
 
       # Even though this has no wait, it will be blocked by the above
       # two long running tasks until one is finished or cancels.
-      handles << thread_pool.schedule(:baz, 0) do
+      handles << thread_pool.schedule(0) do
         answers << :baz
       end
 
@@ -110,18 +110,18 @@ describe Temporal::ScheduledThreadPool do
       times = 0
       handles = []
 
-      handles << thread_pool.schedule(:foo, 30) do
+      handles << thread_pool.schedule(30) do
         times += 1
       end
 
-      handles << thread_pool.schedule(:bar, 30) do
+      handles << thread_pool.schedule(30) do
         times += 1
       end
 
       # Even though this has no wait, it will be blocked by the above
       # two long running tasks. This test ensures it can be canceled
       # even while waiting to run.
-      handles << thread_pool.schedule(:baz, 0) do
+      handles << thread_pool.schedule(0) do
         times += 1
       end
 
@@ -140,7 +140,7 @@ describe Temporal::ScheduledThreadPool do
 
   describe '#new' do
     it 'reports thread available metrics' do
-      thread_pool.schedule(:foo, 0) do
+      thread_pool.schedule(0) do
       end
 
       thread_pool.shutdown

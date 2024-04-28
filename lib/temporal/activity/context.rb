@@ -150,7 +150,7 @@ module Temporal
       def schedule_check_heartbeat(delay)
         return nil if delay <= 0
 
-        heartbeat_thread_pool.schedule([metadata.workflow_run_id, metadata.id, metadata.attempt], delay) do
+        heartbeat_thread_pool.schedule(delay) do
           details = heartbeat_mutex.synchronize do
             @heartbeat_check_scheduled = nil
             # Check to see if there is a saved heartbeat. If heartbeat was not called while this was waiting,

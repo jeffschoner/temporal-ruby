@@ -1,3 +1,4 @@
+require 'securerandom'
 require 'temporal/metric_keys'
 
 # This class implements a thread pool for scheduling tasks with a delay.
@@ -22,9 +23,9 @@ module Temporal
       end
     end
 
-    def schedule(id, delay, &block)
+    def schedule(delay, &block)
       item = ScheduledItem.new(
-        id: id,
+        id: SecureRandom.uuid,
         job: block,
         fire_at: Time.now + delay,
         canceled: false)

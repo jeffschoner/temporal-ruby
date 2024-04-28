@@ -61,7 +61,9 @@ describe Temporal::Activity::Context do
           subject.heartbeat(iteration: 1)
           subject.heartbeat(iteration: 2) # skipped because 3 will overwrite
           subject.heartbeat(iteration: 3)
-          sleep 0.1
+          # Need to wait a bit more than two throttle intervals (0.1 * 0.9 * 2) because
+          # we wait 0.08s after 1, then 0.08s after 3 is sent before 4 can be sent.
+          sleep 0.2
           subject.heartbeat(iteration: 4)
 
           # Shutdown to drain remaining threads
