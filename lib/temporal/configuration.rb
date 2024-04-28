@@ -16,7 +16,8 @@ module Temporal
     Execution = Struct.new(:namespace, :task_queue, :timeouts, :headers, :search_attributes, keyword_init: true)
 
     attr_reader :timeouts, :error_handlers, :capabilities
-    attr_accessor :connection_type, :converter, :use_error_serialization_v2, :host, :port, :credentials, :identity,
+    attr_writer :identity
+    attr_accessor :connection_type, :converter, :use_error_serialization_v2, :host, :port, :credentials,
                   :logger, :metrics_adapter, :namespace, :task_queue, :headers, :search_attributes, :header_propagators,
                   :payload_codec, :legacy_signals, :no_signals_in_first_task, :connection_options
 
@@ -115,13 +116,17 @@ module Temporal
       @timeouts = DEFAULT_TIMEOUTS.merge(new_timeouts)
     end
 
+    def identity
+      @identity ||= default_identity
+    end
+
     def for_connection
       Connection.new(
         type: connection_type,
         host: host,
         port: port,
         credentials: credentials,
-        identity: identity || default_identity,
+        identity: identity,
         connection_options: connection_options
       ).freeze
     end
