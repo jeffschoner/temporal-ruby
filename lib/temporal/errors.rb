@@ -30,8 +30,19 @@ module Temporal
   # throw any exception from an activity and expect that it can be handled by the workflow.
   class ActivityException < ClientError; end
 
-  # Represents cancellation of a non-started activity
-  class ActivityCanceled < ActivityException; end
+  # Superclass used to cover a set of errors that can be raised that interrupt an activity's
+  # execution. You typically use this through Thread.handle_interrupt(ActivityInterruptedError => :immediate)
+  # to allow your activity to raise this error during safe points in its execution.
+  class ActivityInterruptedError < ActivityException; end
+
+  # Represents cancellation of an activity. This can appear in two ways:
+  #
+  # In activities: When the workflow has requested an activity's cancellation and the
+  # activity heartbeats. If this error is raised out of an activity, it will be put
+  # into a canceled state.
+  #
+  # In workflows: When a canceled activity's result is requested.
+  class ActivityCanceled < ActivityInterruptedError; end
 
   class ActivityNotRegistered < ClientError; end
   class WorkflowNotRegistered < ClientError; end
@@ -49,6 +60,12 @@ module Temporal
   class WorkflowTimedOut < WorkflowError; end
   class WorkflowTerminated < WorkflowError; end
   class WorkflowCanceled < WorkflowError; end
+
+  # This can be raised into activity code when the worker executing an activity attempt is
+  # shutting down. By default, your code will not be interrupted. You need to opt-in by
+  # wrapping your code in a Thread.handle_interrupt block for this type
+  # (or ActivityInterruptedError).
+  class WorkerShuttingDownError < ActivityInterruptedError; end
 
   # Errors where the workflow run didn't complete but not an error for the whole workflow.
   class WorkflowRunError < Error; end
