@@ -49,7 +49,11 @@ module Temporal
         respond_failed(error)
       ensure
         unless context&.heartbeat_check_scheduled.nil?
-          heartbeat_thread_pool.cancel(context.heartbeat_check_scheduled)
+          if config.interruptable_thread_pool
+            context.heartbeat_check_scheduled.cancel
+          else
+            heartbeat_thread_pool.cancel(context.heartbeat_check_scheduled)
+          end
         end
 
         time_diff_ms = ((Time.now - start_time) * 1000).round

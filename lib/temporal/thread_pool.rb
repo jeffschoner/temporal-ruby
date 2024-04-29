@@ -34,7 +34,9 @@ module Temporal
       end
     end
 
-    def schedule(&block)
+    # The cancelable parameter is intentionally ignored. This makes it easier to replace ThreadPool with
+    # InterruptableThreadPool in the future.
+    def schedule(cancelable: nil, &block)
       @mutex.synchronize do
         @available_threads -= 1
         @queue << block

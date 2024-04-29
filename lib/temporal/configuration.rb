@@ -19,7 +19,7 @@ module Temporal
     attr_writer :identity
     attr_accessor :connection_type, :converter, :use_error_serialization_v2, :host, :port, :credentials,
                   :logger, :metrics_adapter, :namespace, :task_queue, :headers, :search_attributes, :header_propagators,
-                  :payload_codec, :legacy_signals, :no_signals_in_first_task, :connection_options
+                  :payload_codec, :legacy_signals, :no_signals_in_first_task, :connection_options, :interruptable_thread_pool
 
     # See https://docs.temporal.io/blog/activity-timeouts/ for general docs.
     # We want an infinite execution timeout for cron schedules and other perpetual workflows.
@@ -98,6 +98,9 @@ module Temporal
       # This is a legacy behavior that is incorrect, but which existing workflow code may rely on. Only
       # set to true until you can fix your workflow code.
       @no_signals_in_first_task = false
+
+      # Default this to false for now
+      @interruptable_thread_pool = false
     end
 
     def on_error(&block)

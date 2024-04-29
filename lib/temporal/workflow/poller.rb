@@ -89,7 +89,7 @@ module Temporal
 
           next unless task&.workflow_type
 
-          thread_pool.schedule { process(task) }
+          thread_pool.schedule(cancelable: false) { process(task) }
         end
       end
 
@@ -118,7 +118,8 @@ module Temporal
       end
 
       def thread_pool
-        @thread_pool ||= ThreadPool.new(
+        thread_pool_type = @config.interruptable_thread_pool ? InterruptableThreadPool : ThreadPool
+        @thread_pool ||= thread_pool_type.new(
           options[:thread_pool_size],
           @config,
           {
