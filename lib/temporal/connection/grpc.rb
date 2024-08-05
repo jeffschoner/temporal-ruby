@@ -193,7 +193,7 @@ module Temporal
         client.get_workflow_execution_history(request, deadline: deadline)
       end
 
-      def poll_workflow_task_queue(namespace:, task_queue:, binary_checksum:)
+      def poll_workflow_task_queue(namespace:, task_queue:, build_id:)
         request = Temporalio::Api::WorkflowService::V1::PollWorkflowTaskQueueRequest.new(
           identity: identity,
           namespace: namespace,
@@ -207,9 +207,9 @@ module Temporal
           #
           # Setting the build ID on the worker version capabilities ensures that enhanced visibility queries
           # can still be performed to find workflows that ran on a specific worker version.
-          binary_checksum: binary_checksum,
+          binary_checksum: build_id,
           worker_version_capabilities: Temporalio::Api::Common::V1::WorkerVersionCapabilities.new(
-            build_id: binary_checksum
+            build_id: build_id
           )
         )
 
@@ -235,16 +235,17 @@ module Temporal
         client.respond_query_task_completed(request)
       end
 
-      def respond_workflow_task_completed(namespace:, task_token:, commands:, binary_checksum:, new_sdk_flags_used:, query_results: {})
+      def respond_workflow_task_completed(namespace:, task_token:, commands:, build_id:, new_sdk_flags_used:,
+                                          query_results: {})
         request = Temporalio::Api::WorkflowService::V1::RespondWorkflowTaskCompletedRequest.new(
           namespace: namespace,
           identity: identity,
           task_token: task_token,
           commands: Array(commands).map { |(_, command)| Serializer.serialize(command) },
           query_results: query_results.transform_values { |value| Serializer.serialize(value) },
-          binary_checksum: binary_checksum,
+          binary_checksum: build_id,
           worker_version_stamp: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
-            build_id: binary_checksum
+            build_id: build_id
           ),
           sdk_metadata: if new_sdk_flags_used.any?
                           Temporalio::Api::Sdk::V1::WorkflowTaskCompletedMetadata.new(
@@ -257,16 +258,16 @@ module Temporal
         client.respond_workflow_task_completed(request)
       end
 
-      def respond_workflow_task_failed(namespace:, task_token:, cause:, exception:, binary_checksum:)
+      def respond_workflow_task_failed(namespace:, task_token:, cause:, exception:, build_id:)
         request = Temporalio::Api::WorkflowService::V1::RespondWorkflowTaskFailedRequest.new(
           namespace: namespace,
           identity: identity,
           task_token: task_token,
           cause: cause,
           failure: Serializer::Failure.new(exception).to_proto,
-          binary_checksum: binary_checksum,
+          binary_checksum: build_id,
           worker_version: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
-            build_id: binary_checksum
+            build_id: build_id
           )
         )
         client.respond_workflow_task_failed(request)

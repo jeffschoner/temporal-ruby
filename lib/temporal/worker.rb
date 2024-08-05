@@ -10,19 +10,14 @@ module Temporal
     # activity_thread_pool_size: number of threads that the poller can use to run activities.
     #   can be set to 1 if you want no paralellism in your activities, at the cost of throughput.
     #
-    # binary_checksum: The binary checksum identifies the version of workflow worker code. It is set on each completed or failed workflow
-    #   task. It is present in API responses that return workflow execution info, and is shown in temporal-web and tctl.
-    #   It is traditionally a checksum of the application binary. However, Temporal server treats this as an opaque
-    #   identifier and it does not have to be a "checksum". Typical values for a Ruby application might include the hash
-    #   of the latest git commit or a semantic version number.
+    # build_id: Formerly known as binary checksum, this identifies the version of workflow worker code. It is set on
+    #   each completed or failed workflow task. It is present in API responses that return workflow execution info, and
+    #   is shown in temporal-ui and CLI. It is traditionally a checksum of the application binary. However, Temporal
+    #   server treats this as an opaque identifier and it does not have to be a "checksum". Typical values for a Ruby
+    #   application might include the hash of the latest git commit or a semantic version number.
     #
-    #   It can be used to reset workflow history to before a "bad binary" was deployed. Bad checksum values can also
-    #   be marked at the namespace level. This will cause Temporal server to reject any polling for workflow tasks
-    #   from workers with these bad versions.
-    #
-    #   See https://docs.temporal.io/docs/tctl/how-to-use-tctl/#recovery-from-bad-deployment----auto-reset-workflow
-    #
-    # activity_max_tasks_per_second: Optional: Sets the rate limiting on number of activities that can be executed per second
+    # activity_max_tasks_per_second: Optional: Sets the rate limiting on number of activities that can be executed per
+    #   second
     #
     #   This limits new activities being started and activity attempts being scheduled. It does NOT
     #   limit the number of concurrent activities being executed on this task queue.
@@ -36,7 +31,9 @@ module Temporal
       config = Temporal.configuration,
       activity_thread_pool_size: Temporal::Activity::Poller::DEFAULT_OPTIONS[:thread_pool_size],
       workflow_thread_pool_size: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:thread_pool_size],
-      binary_checksum: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:binary_checksum],
+      # DEPRECATED, use build_id instead of binary_checksum
+      binary_checksum: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:build_id],
+      build_id: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:build_id],
       activity_poll_retry_seconds: Temporal::Activity::Poller::DEFAULT_OPTIONS[:poll_retry_seconds],
       workflow_poll_retry_seconds: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:poll_retry_seconds],
       activity_max_tasks_per_second: Temporal::Activity::Poller::DEFAULT_OPTIONS[:max_tasks_per_second]
@@ -56,7 +53,7 @@ module Temporal
       }
       @workflow_poller_options = {
         thread_pool_size: workflow_thread_pool_size,
-        binary_checksum: binary_checksum,
+        build_id: build_id || binary_checksum,
         poll_retry_seconds: workflow_poll_retry_seconds
       }
       @start_stop_mutex = Mutex.new

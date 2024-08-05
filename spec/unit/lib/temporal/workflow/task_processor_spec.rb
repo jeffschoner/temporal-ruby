@@ -5,7 +5,8 @@ require 'temporal/workflow/task_processor'
 
 describe Temporal::Workflow::TaskProcessor do
   subject do
-    described_class.new(task, task_queue, namespace, lookup, middleware_chain, workflow_middleware_chain, config, binary_checksum)
+    described_class.new(task, task_queue, namespace, lookup, middleware_chain, workflow_middleware_chain, config,
+                        build_id)
   end
 
   let(:namespace) { 'test-namespace' }
@@ -23,7 +24,7 @@ describe Temporal::Workflow::TaskProcessor do
   let(:workflow_middleware_chain) { Temporal::Middleware::Chain.new }
   let(:input) { %w[arg1 arg2] }
   let(:config) { Temporal::Configuration.new }
-  let(:binary_checksum) { 'v1.0.0' }
+  let(:build_id) { 'v1.0.0' }
 
   describe '#process' do
     let(:context) { instance_double('Temporal::Workflow::Context') }
@@ -140,7 +141,7 @@ describe Temporal::Workflow::TaskProcessor do
                 namespace: namespace,
                 task_token: task.task_token,
                 commands: commands,
-                binary_checksum: binary_checksum,
+                build_id: build_id,
                 query_results: { query_id => query_result },
                 new_sdk_flags_used: new_sdk_flags_used
               )
@@ -184,7 +185,7 @@ describe Temporal::Workflow::TaskProcessor do
                 task_token: task.task_token,
                 commands: commands,
                 query_results: nil,
-                binary_checksum: binary_checksum,
+                build_id: build_id,
                 new_sdk_flags_used: new_sdk_flags_used
               )
           end
@@ -247,7 +248,7 @@ describe Temporal::Workflow::TaskProcessor do
                 task_token: task.task_token,
                 cause: Temporalio::Api::Enums::V1::WorkflowTaskFailedCause::WORKFLOW_TASK_FAILED_CAUSE_WORKFLOW_WORKER_UNHANDLED_FAILURE,
                 exception: exception,
-                binary_checksum: binary_checksum
+                build_id: build_id
               )
           end
 
@@ -277,7 +278,7 @@ describe Temporal::Workflow::TaskProcessor do
                 task_token: task.task_token,
                 cause: Temporalio::Api::Enums::V1::WorkflowTaskFailedCause::WORKFLOW_TASK_FAILED_CAUSE_WORKFLOW_WORKER_UNHANDLED_FAILURE,
                 exception: exception,
-                binary_checksum: binary_checksum
+                build_id: build_id
               )
           end
 

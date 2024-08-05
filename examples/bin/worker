@@ -30,7 +30,7 @@ Temporal.configure do |config|
   config.add_header_propagator(SamplePropagator)
 end
 
-worker = Temporal::Worker.new(binary_checksum: `git show HEAD -s --format=%H`.strip)
+worker = Temporal::Worker.new(build_id: `git show HEAD -s --format=%H`.strip)
 
 worker.register_workflow(AsyncActivityWorkflow)
 worker.register_workflow(AsyncHelloWorldWorkflow)
