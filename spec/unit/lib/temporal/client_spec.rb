@@ -774,7 +774,10 @@ describe Temporal::Client do
         workflow_execution_info: api_info
       )
     end
-    let(:api_info) { Fabricate(:api_workflow_execution_info, workflow: 'TestWorkflow', workflow_id: '') }
+    let(:build_id) { SecureRandom.uuid }
+    let(:api_info) do
+      Fabricate(:api_workflow_execution_info, workflow: 'TestWorkflow', workflow_id: '', build_id: build_id)
+    end
 
     before { allow(connection).to receive(:describe_workflow_execution).and_return(response) }
 
@@ -790,6 +793,7 @@ describe Temporal::Client do
       info = subject.fetch_workflow_execution_info('namespace', '111', '222')
 
       expect(info).to be_a(Temporal::Workflow::ExecutionInfo)
+      expect(info.most_recent_build_id).to eq(build_id)
     end
   end
 

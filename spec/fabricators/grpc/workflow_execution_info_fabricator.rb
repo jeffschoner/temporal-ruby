@@ -1,5 +1,5 @@
 Fabricator(:api_workflow_execution_info, from: Temporalio::Api::Workflow::V1::WorkflowExecutionInfo) do
-  transient :workflow_id, :workflow
+  transient :workflow_id, :workflow, :build_id
 
   execution { |attrs| Fabricate(:api_workflow_execution, workflow_id: attrs[:workflow_id]) }
   type { |attrs| Fabricate(:api_workflow_type, name: attrs[:workflow]) }
@@ -9,4 +9,7 @@ Fabricator(:api_workflow_execution_info, from: Temporalio::Api::Workflow::V1::Wo
   history_length { rand(100) }
   memo { Fabricate(:memo) }
   search_attributes { Fabricate(:search_attributes) }
+  most_recent_worker_version_stamp do |attrs|
+    Temporalio::Api::Common::V1::WorkerVersionStamp.new(build_id: attrs[:build_id] || SecureRandom.uuid)
+  end
 end
