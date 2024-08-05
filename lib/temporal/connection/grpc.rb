@@ -3,6 +3,7 @@ require 'time'
 require 'google/protobuf/well_known_types'
 require 'securerandom'
 require 'json'
+require 'gen/temporal/api/common/v1/message_pb'
 require 'gen/temporal/api/filter/v1/message_pb'
 require 'gen/temporal/api/workflowservice/v1/service_services_pb'
 require 'gen/temporal/api/operatorservice/v1/service_services_pb'
@@ -200,7 +201,11 @@ module Temporal
           task_queue: Temporalio::Api::TaskQueue::V1::TaskQueue.new(
             name: task_queue
           ),
-          binary_checksum: binary_checksum
+          binary_checksum: binary_checksum,
+          worker_version_capabilities: Temporalio::Api::Common::V1::WorkerVersionCapabilities.new(
+            build_id: binary_checksum,
+            use_versioning: false
+          )
         )
 
         poll_mutex.synchronize do
@@ -233,6 +238,10 @@ module Temporal
           commands: Array(commands).map { |(_, command)| Serializer.serialize(command, converter) },
           query_results: query_results.transform_values { |value| Serializer.serialize(value, converter) },
           binary_checksum: binary_checksum,
+          worker_version_stamp: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
+            build_id: binary_checksum,
+            use_versioning: false
+          ),
           sdk_metadata: if new_sdk_flags_used.any?
                           Temporalio::Api::Sdk::V1::WorkflowTaskCompletedMetadata.new(
                             lang_used_flags: new_sdk_flags_used.to_a
@@ -251,7 +260,11 @@ module Temporal
           task_token: task_token,
           cause: cause,
           failure: Serializer::Failure.new(exception, converter).to_proto,
-          binary_checksum: binary_checksum
+          binary_checksum: binary_checksum,
+          worker_version: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
+            build_id: binary_checksum,
+            use_versioning: false
+          )
         )
         client.respond_workflow_task_failed(request)
       end
