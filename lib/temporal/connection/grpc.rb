@@ -243,6 +243,9 @@ module Temporal
           commands: Array(commands).map { |(_, command)| Serializer.serialize(command) },
           query_results: query_results.transform_values { |value| Serializer.serialize(value) },
           binary_checksum: binary_checksum,
+          worker_version_stamp: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
+            build_id: binary_checksum
+          ),
           sdk_metadata: if new_sdk_flags_used.any?
                           Temporalio::Api::Sdk::V1::WorkflowTaskCompletedMetadata.new(
                             lang_used_flags: new_sdk_flags_used.to_a
@@ -261,7 +264,10 @@ module Temporal
           task_token: task_token,
           cause: cause,
           failure: Serializer::Failure.new(exception).to_proto,
-          binary_checksum: binary_checksum
+          binary_checksum: binary_checksum,
+          worker_version: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
+            build_id: binary_checksum
+          )
         )
         client.respond_workflow_task_failed(request)
       end
