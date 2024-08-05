@@ -200,7 +200,17 @@ module Temporal
           task_queue: Temporalio::Api::TaskQueue::V1::TaskQueue.new(
             name: task_queue
           ),
-          binary_checksum: binary_checksum
+          # Build IDs have replaced binary checksums. However, temporal-ruby does not support worker versioning
+          #
+          # See https://keithtenzer.com/temporal/Temporal_Worker_Versioning/ for details about that unsupported
+          # feature.
+          #
+          # Setting the build ID on the worker version capabilities ensures that enhanced visibility queries
+          # can still be performed to find workflows that ran on a specific worker version.
+          binary_checksum: binary_checksum,
+          worker_version_capabilities: Temporalio::Api::Common::V1::WorkerVersionCapabilities.new(
+            build_id: binary_checksum
+          )
         )
 
         poll_mutex.synchronize do
