@@ -14,7 +14,7 @@ describe Temporal::Workflow::Poller do
   let(:workflow_middleware_chain) { instance_double(Temporal::Middleware::Chain) }
   let(:workflow_middleware) { [] }
   let(:empty_middleware_chain) { instance_double(Temporal::Middleware::Chain) }
-  let(:binary_checksum) { 'v1.0.0' }
+  let(:build_id) { 'v1.0.0' }
   let(:busy_wait_delay) {0.01}
 
   subject do
@@ -26,7 +26,7 @@ describe Temporal::Workflow::Poller do
       middleware,
       workflow_middleware,
       {
-        binary_checksum: binary_checksum
+        build_id: build_id
       }
     )
   end
@@ -113,7 +113,7 @@ describe Temporal::Workflow::Poller do
 
         expect(Temporal::Workflow::TaskProcessor)
           .to have_received(:new)
-          .with(task, task_queue, namespace, lookup, empty_middleware_chain, empty_middleware_chain, config, binary_checksum)
+          .with(task, task_queue, namespace, lookup, empty_middleware_chain, empty_middleware_chain, config, build_id)
         expect(task_processor).to have_received(:process)
       end
 
@@ -151,7 +151,7 @@ describe Temporal::Workflow::Poller do
           expect(Temporal::Middleware::Chain).to have_received(:new).with(workflow_middleware)
           expect(Temporal::Workflow::TaskProcessor)
             .to have_received(:new)
-            .with(task, task_queue, namespace, lookup, middleware_chain, workflow_middleware_chain, config, binary_checksum)
+            .with(task, task_queue, namespace, lookup, middleware_chain, workflow_middleware_chain, config, build_id)
         end
       end
     end
@@ -221,7 +221,7 @@ describe Temporal::Workflow::Poller do
           middleware,
           workflow_middleware,
           {
-            binary_checksum: binary_checksum,
+            build_id: build_id,
             poll_retry_seconds: 5
           }
         )

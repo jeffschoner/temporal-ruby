@@ -264,7 +264,7 @@ describe Temporal::Worker do
           [],
           [],
           thread_pool_size: 10,
-          binary_checksum: nil,
+          build_id: nil,
           poll_retry_seconds: 0
         )
         .and_return(workflow_poller_1)
@@ -279,7 +279,7 @@ describe Temporal::Worker do
           [],
           [],
           thread_pool_size: 10,
-          binary_checksum: nil,
+          build_id: nil,
           poll_retry_seconds: 0
         )
         .and_return(workflow_poller_2)
@@ -373,7 +373,7 @@ describe Temporal::Worker do
               .and_return(activity_poller)
 
       workflow_poller = instance_double(Temporal::Workflow::Poller, start: nil, stop_polling: nil, cancel_pending_requests: nil, wait: nil)
-      binary_checksum = 'abc123'
+      build_id = 'abc123'
       expect(Temporal::Workflow::Poller)
         .to receive(:new)
         .with(
@@ -384,12 +384,12 @@ describe Temporal::Worker do
           [],
           [],
           thread_pool_size: 10,
-          binary_checksum: binary_checksum,
+          build_id: build_id,
           poll_retry_seconds: 0
         )
         .and_return(workflow_poller)
 
-      worker = Temporal::Worker.new(config, binary_checksum: binary_checksum)
+      worker = Temporal::Worker.new(build_id: build_id)
       worker.register_workflow(TestWorkerWorkflow)
       worker.register_activity(TestWorkerActivity)
 
@@ -431,7 +431,7 @@ describe Temporal::Worker do
           an_instance_of(Temporal::Configuration),
           [],
           [],
-          {binary_checksum: nil, poll_retry_seconds: 10, thread_pool_size: 10}
+          {build_id: nil, poll_retry_seconds: 10, thread_pool_size: 10}
         )
         .and_return(workflow_poller)
 
@@ -502,7 +502,7 @@ describe Temporal::Worker do
             [entry_1],
             [entry_3],
             thread_pool_size: 10,
-            binary_checksum: nil,
+            build_id: nil,
             poll_retry_seconds: 0
           )
           .and_return(workflow_poller_1)

@@ -76,7 +76,9 @@ Fabricator(:api_workflow_task_completed_event, from: :api_history_event) do
       scheduled_event_id: attrs[:event_id] - 2,
       started_event_id: attrs[:event_id] - 1,
       identity: 'test-worker@test-host',
-      binary_checksum: 'v1.0.0',
+      worker_version: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
+        build_id: 'v1.0.0'
+      ),
       sdk_metadata: Temporalio::Api::Sdk::V1::WorkflowTaskCompletedMetadata.new(
         lang_used_flags: attrs[:sdk_flags] || []
       )

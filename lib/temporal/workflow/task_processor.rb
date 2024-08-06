@@ -22,7 +22,7 @@ module Temporal
       MAX_FAILED_ATTEMPTS = 1
       LEGACY_QUERY_KEY = :legacy_query
 
-      def initialize(task, task_queue, namespace, workflow_lookup, middleware_chain, workflow_middleware_chain, config, binary_checksum)
+      def initialize(task, task_queue, namespace, workflow_lookup, middleware_chain, workflow_middleware_chain, config, build_id)
         @task = task
         @task_queue = task_queue
         @namespace = namespace
@@ -33,7 +33,7 @@ module Temporal
         @middleware_chain = middleware_chain
         @workflow_middleware_chain = workflow_middleware_chain
         @config = config
-        @binary_checksum = binary_checksum
+        @build_id = build_id
       end
 
       def process
@@ -86,7 +86,7 @@ module Temporal
       private
 
       attr_reader :task, :task_queue, :namespace, :task_token, :workflow_name, :workflow_class,
-                  :middleware_chain, :workflow_middleware_chain, :metadata, :config, :binary_checksum
+                  :middleware_chain, :workflow_middleware_chain, :metadata, :config, :build_id
 
       def connection
         @connection ||= Temporal::Connection.generate(config.for_connection)
@@ -138,7 +138,7 @@ module Temporal
           namespace: namespace,
           task_token: task_token,
           commands: run_result.commands,
-          binary_checksum: binary_checksum,
+          build_id: build_id,
           query_results: query_results,
           new_sdk_flags_used: run_result.new_sdk_flags_used
         )
@@ -173,7 +173,7 @@ module Temporal
           task_token: task_token,
           cause: Temporalio::Api::Enums::V1::WorkflowTaskFailedCause::WORKFLOW_TASK_FAILED_CAUSE_WORKFLOW_WORKER_UNHANDLED_FAILURE,
           exception: error,
-          binary_checksum: binary_checksum
+          build_id: build_id
         )
       rescue StandardError => e
         Temporal.logger.error('Unable to fail Workflow task', metadata.to_h.merge(error: e.inspect))

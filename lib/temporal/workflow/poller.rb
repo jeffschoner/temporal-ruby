@@ -11,7 +11,7 @@ module Temporal
     class Poller
       DEFAULT_OPTIONS = {
         thread_pool_size: 10,
-        binary_checksum: nil,
+        build_id: nil,
         poll_retry_seconds: 0
       }.freeze
 
@@ -95,7 +95,7 @@ module Temporal
 
       def poll_for_task
         connection.poll_workflow_task_queue(namespace: namespace, task_queue: task_queue,
-                                            binary_checksum: binary_checksum)
+                                            build_id: build_id)
       rescue ::GRPC::Cancelled
         # We're shutting down and we've already reported that in the logs
         nil
@@ -114,7 +114,7 @@ module Temporal
         workflow_middleware_chain = Middleware::Chain.new(workflow_middleware)
 
         TaskProcessor.new(task, task_queue, namespace, workflow_lookup, middleware_chain, workflow_middleware_chain,
-                          config, binary_checksum).process
+                          config, build_id).process
       end
 
       def thread_pool
@@ -129,8 +129,8 @@ module Temporal
         )
       end
 
-      def binary_checksum
-        @options[:binary_checksum]
+      def build_id
+        @options[:build_id]
       end
 
       def poll_retry_seconds

@@ -194,7 +194,7 @@ module Temporal
         client.get_workflow_execution_history(request, deadline: deadline)
       end
 
-      def poll_workflow_task_queue(namespace:, task_queue:, binary_checksum:)
+      def poll_workflow_task_queue(namespace:, task_queue:, build_id:)
         request = Temporalio::Api::WorkflowService::V1::PollWorkflowTaskQueueRequest.new(
           identity: identity,
           namespace: namespace,
@@ -202,7 +202,7 @@ module Temporal
             name: task_queue
           ),
           worker_version_capabilities: Temporalio::Api::Common::V1::WorkerVersionCapabilities.new(
-            build_id: binary_checksum,
+            build_id: build_id,
             use_versioning: false
           )
         )
@@ -229,7 +229,7 @@ module Temporal
         client.respond_query_task_completed(request)
       end
 
-      def respond_workflow_task_completed(namespace:, task_token:, commands:, binary_checksum:, new_sdk_flags_used:, query_results: {})
+      def respond_workflow_task_completed(namespace:, task_token:, commands:, build_id:, new_sdk_flags_used:, query_results: {})
         request = Temporalio::Api::WorkflowService::V1::RespondWorkflowTaskCompletedRequest.new(
           namespace: namespace,
           identity: identity,
@@ -237,7 +237,7 @@ module Temporal
           commands: Array(commands).map { |(_, command)| Serializer.serialize(command, converter) },
           query_results: query_results.transform_values { |value| Serializer.serialize(value, converter) },
           worker_version_stamp: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
-            build_id: binary_checksum,
+            build_id: build_id,
             use_versioning: false
           ),
           sdk_metadata: if new_sdk_flags_used.any?
@@ -251,7 +251,7 @@ module Temporal
         client.respond_workflow_task_completed(request)
       end
 
-      def respond_workflow_task_failed(namespace:, task_token:, cause:, exception:, binary_checksum:)
+      def respond_workflow_task_failed(namespace:, task_token:, cause:, exception:, build_id:)
         request = Temporalio::Api::WorkflowService::V1::RespondWorkflowTaskFailedRequest.new(
           namespace: namespace,
           identity: identity,
@@ -259,7 +259,7 @@ module Temporal
           cause: cause,
           failure: Serializer::Failure.new(exception, converter).to_proto,
           worker_version: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
-            build_id: binary_checksum,
+            build_id: build_id,
             use_versioning: false
           )
         )

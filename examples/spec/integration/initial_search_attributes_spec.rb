@@ -4,7 +4,7 @@ require 'time'
 describe 'starting workflow with initial search attributes', :integration do
   it 'has attributes appear in final execution info, but can get overriden by upserting' do
     workflow_id = 'initial_search_attributes_test_wf-' + SecureRandom.uuid
-    expected_binary_checksum = `git show HEAD -s --format=%H`.strip
+    expected_build_id = `git show HEAD -s --format=%H`.strip
 
     initial_search_attributes = {
       'CustomBoolField' => false,
@@ -13,12 +13,12 @@ describe 'starting workflow with initial search attributes', :integration do
 
       # These should get overriden when the workflow upserts them
       'CustomStringField' => 'meow',
-      'CustomDoubleField' => 6.28,
+      'CustomDoubleField' => 6.28
     }
     # Override some of the initial search attributes by upserting them during the workflow execution.
     upserted_search_attributes = {
       'CustomStringField' => 'moo',
-      'CustomDoubleField' => 3.14,
+      'CustomDoubleField' => 3.14
     }
     expected_custom_attributes = initial_search_attributes.merge(upserted_search_attributes)
     # Datetime fields get converted to the Time#iso8601 format, in UTC
@@ -35,22 +35,22 @@ describe 'starting workflow with initial search attributes', :integration do
       time_value: nil,
       options: {
         workflow_id: workflow_id,
-        search_attributes: initial_search_attributes,
-      },
+        search_attributes: initial_search_attributes
+      }
     )
 
     # UpsertSearchAttributesWorkflow returns the search attributes it upserted during its execution
     attributes_at_end = Temporal.await_workflow_result(
       UpsertSearchAttributesWorkflow,
       workflow_id: workflow_id,
-      run_id: run_id,
+      run_id: run_id
     )
     expect(attributes_at_end).to eq(expected_custom_attributes)
 
     # These attributes are set for the worker in bin/worker
     expected_attributes = {
       # Contains a list of all binary checksums seen for this workflow execution
-      'BinaryChecksums' => [expected_binary_checksum]
+      'BuildIds' => ['unversioned', "unversioned:#{expected_build_id}"]
     }.merge(expected_custom_attributes)
 
     execution_info = Temporal.fetch_workflow_execution_info(

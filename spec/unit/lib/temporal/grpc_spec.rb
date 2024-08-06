@@ -10,7 +10,7 @@ describe Temporal::Connection::GRPC do
       Temporal::Configuration::DEFAULT_PAYLOAD_CODEC
     )
   end
-  let(:binary_checksum) { 'v1.0.0' }
+  let(:build_id) { 'v1.0.0' }
   let(:grpc_stub) { double('grpc stub') }
   let(:grpc_operator_stub) { double('grpc stub') }
   let(:namespace) { 'test-namespace' }
@@ -596,7 +596,7 @@ describe Temporal::Connection::GRPC do
           task_token: task_token,
           commands: [],
           query_results: query_results,
-          binary_checksum: binary_checksum,
+          build_id: build_id,
           new_sdk_flags_used: [1]
         )
 
@@ -606,7 +606,7 @@ describe Temporal::Connection::GRPC do
           expect(request.namespace).to eq(namespace)
           expect(request.commands).to be_empty
           expect(request.identity).to eq(identity)
-          expect(request.worker_version_stamp.build_id).to eq(binary_checksum)
+          expect(request.worker_version_stamp.build_id).to eq(build_id)
 
           expect(request.query_results.length).to eq(2)
 
@@ -640,7 +640,7 @@ describe Temporal::Connection::GRPC do
         task_token: task_token,
         cause: cause,
         exception: Exception.new('something went wrong'),
-        binary_checksum: binary_checksum
+        build_id: build_id
       )
 
       expect(grpc_stub).to have_received(:respond_workflow_task_failed) do |request|
@@ -649,7 +649,7 @@ describe Temporal::Connection::GRPC do
         expect(request.task_token).to eq(task_token)
         expect(request.cause).to be(Temporalio::Api::Enums::V1::WorkflowTaskFailedCause.lookup(cause))
         expect(request.identity).to eq(identity)
-        expect(request.worker_version.build_id).to eq(binary_checksum)
+        expect(request.worker_version.build_id).to eq(build_id)
       end
     end
   end
