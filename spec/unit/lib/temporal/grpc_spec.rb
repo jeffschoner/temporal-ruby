@@ -606,7 +606,6 @@ describe Temporal::Connection::GRPC do
           expect(request.namespace).to eq(namespace)
           expect(request.commands).to be_empty
           expect(request.identity).to eq(identity)
-          expect(request.binary_checksum).to eq(binary_checksum)
           expect(request.worker_version_stamp.build_id).to eq(binary_checksum)
 
           expect(request.query_results.length).to eq(2)
@@ -650,7 +649,6 @@ describe Temporal::Connection::GRPC do
         expect(request.task_token).to eq(task_token)
         expect(request.cause).to be(Temporalio::Api::Enums::V1::WorkflowTaskFailedCause.lookup(cause))
         expect(request.identity).to eq(identity)
-        expect(request.binary_checksum).to eq(binary_checksum)
         expect(request.worker_version.build_id).to eq(binary_checksum)
       end
     end

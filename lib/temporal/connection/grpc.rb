@@ -201,7 +201,6 @@ module Temporal
           task_queue: Temporalio::Api::TaskQueue::V1::TaskQueue.new(
             name: task_queue
           ),
-          binary_checksum: binary_checksum,
           worker_version_capabilities: Temporalio::Api::Common::V1::WorkerVersionCapabilities.new(
             build_id: binary_checksum,
             use_versioning: false
@@ -237,7 +236,6 @@ module Temporal
           task_token: task_token,
           commands: Array(commands).map { |(_, command)| Serializer.serialize(command, converter) },
           query_results: query_results.transform_values { |value| Serializer.serialize(value, converter) },
-          binary_checksum: binary_checksum,
           worker_version_stamp: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
             build_id: binary_checksum,
             use_versioning: false
@@ -260,7 +258,6 @@ module Temporal
           task_token: task_token,
           cause: cause,
           failure: Serializer::Failure.new(exception, converter).to_proto,
-          binary_checksum: binary_checksum,
           worker_version: Temporalio::Api::Common::V1::WorkerVersionStamp.new(
             build_id: binary_checksum,
             use_versioning: false
