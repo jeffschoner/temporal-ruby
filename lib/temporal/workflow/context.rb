@@ -439,9 +439,22 @@ module Temporal
           future.success_callbacks.each { |callback| call_in_fiber(callback, result) }
         end
 
-        dispatcher.register_handler(target, 'failed') do |exception|
-          future.fail(exception)
-          future.failure_callbacks.each { |callback| call_in_fiber(callback, exception) }
+        dispatcher.register_handler(target, 'failed') do |cause|
+          reason =
+            case cause
+            when :SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNSPECIFIED
+              :unspecified
+            when :SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_EXTERNAL_WORKFLOW_EXECUTION_NOT_FOUND
+              :workflow_execution_not_found
+            when :SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_NAMESPACE_NOT_FOUND
+              :namespace_not_found
+            when :SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_SIGNAL_COUNT_LIMIT_EXCEEDED
+              :signal_count_limit_exceeded
+            else
+              :unknown
+            end
+          future.fail(reason)
+          future.failure_callbacks.each { |callback| call_in_fiber(callback, reason) }
         end
 
         future

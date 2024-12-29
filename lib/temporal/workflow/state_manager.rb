@@ -416,7 +416,7 @@ module Temporal
           # Temporal Server cannot Signal the targeted Workflow
           # Usually because the Workflow could not be found
           state_machine.fail
-          dispatch(history_target, 'failed', 'StandardError', event.attributes.cause)
+          dispatch(history_target, 'failed', event.attributes.cause)
 
         when 'EXTERNAL_WORKFLOW_EXECUTION_SIGNALED'
           # Temporal Server has successfully Signaled the targeted Workflow

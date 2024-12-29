@@ -8,10 +8,11 @@ class SendSignalToExternalWorkflow < Temporal::Workflow
   def execute(signal_name, target_workflow)
     logger.info("Send a signal to an external workflow")
     future = workflow.signal_external_workflow(WaitForExternalSignalWorkflow, signal_name, target_workflow, nil, ["arg1", "arg2"])
-    @status = nil
-    future.done { @status = :success }
-    future.failed { @status = :failed }
+
+    status = nil
+    future.done { status = :success }
+    future.failed { |error| status = error }
     future.get
-    @status
+    status
   end
 end
