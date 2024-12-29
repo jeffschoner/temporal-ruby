@@ -10,6 +10,8 @@ module Temporal
     # activity_thread_pool_size: number of threads that the poller can use to run activities.
     #   can be set to 1 if you want no paralellism in your activities, at the cost of throughput.
     #
+    # binary_checksum: This keyword argument has been deprecated in favor of build_id below.
+    #
     # build_id: The binary checksum identifies the version of workflow worker code. It is set on each completed or failed workflow
     #   task. It is present in API responses that return workflow execution info, and is shown in temporal-web and tctl.
     #   It is traditionally a checksum of the application binary. However, Temporal server treats this as an opaque
@@ -36,6 +38,7 @@ module Temporal
       config = Temporal.configuration,
       activity_thread_pool_size: Temporal::Activity::Poller::DEFAULT_OPTIONS[:thread_pool_size],
       workflow_thread_pool_size: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:thread_pool_size],
+      binary_checksum: nil, # deprecated, use build_id
       build_id: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:build_id],
       activity_poll_retry_seconds: Temporal::Activity::Poller::DEFAULT_OPTIONS[:poll_retry_seconds],
       workflow_poll_retry_seconds: Temporal::Workflow::Poller::DEFAULT_OPTIONS[:poll_retry_seconds],
@@ -56,7 +59,9 @@ module Temporal
       }
       @workflow_poller_options = {
         thread_pool_size: workflow_thread_pool_size,
-        build_id: build_id,
+        # binary_checksum has been deprecated but propagate the value through if one
+        # is specified and there's no build_id set
+        build_id: build_id || binary_checksum,
         poll_retry_seconds: workflow_poll_retry_seconds
       }
       @start_stop_mutex = Mutex.new

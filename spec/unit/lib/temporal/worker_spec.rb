@@ -50,7 +50,6 @@ describe Temporal::Worker do
   class OtherTestWorkerActivity < Temporal::Activity
     namespace 'default-namespace'
     task_queue 'default-task-queue'
-
   end
 
   THREAD_SYNC_DELAY = 0.01
@@ -173,8 +172,6 @@ describe Temporal::Worker do
         'and there can be only one.'
       )
     end
-
-
   end
 
   describe '#add_workflow_task_middleware' do
@@ -366,14 +363,17 @@ describe Temporal::Worker do
       subject.stop
     end
 
-    it 'can have a worklow poller with a binary checksum' do
-      activity_poller = instance_double(Temporal::Activity::Poller, start: nil, stop_polling: nil, cancel_pending_requests: nil, wait: nil)
+    it 'can have a worklow poller with a build id' do
+      activity_poller = instance_double(Temporal::Activity::Poller, start: nil, stop_polling: nil,
+                                                                    cancel_pending_requests: nil, wait: nil)
       expect(Temporal::Activity::Poller)
         .to receive(:new)
-              .and_return(activity_poller)
+        .and_return(activity_poller)
 
-      workflow_poller = instance_double(Temporal::Workflow::Poller, start: nil, stop_polling: nil, cancel_pending_requests: nil, wait: nil)
+      workflow_poller = instance_double(Temporal::Workflow::Poller, start: nil, stop_polling: nil,
+                                                                    cancel_pending_requests: nil, wait: nil)
       build_id = 'abc123'
+      binary_checksum = 'def456'
       expect(Temporal::Workflow::Poller)
         .to receive(:new)
         .with(
@@ -389,7 +389,43 @@ describe Temporal::Worker do
         )
         .and_return(workflow_poller)
 
-      worker = Temporal::Worker.new(build_id: build_id)
+      # binary_checksum will be ignored because there's a build_id
+      worker = Temporal::Worker.new(build_id: build_id, binary_checksum: binary_checksum)
+      worker.register_workflow(TestWorkerWorkflow)
+      worker.register_activity(TestWorkerActivity)
+
+      start_and_stop(worker)
+
+      expect(workflow_poller).to have_received(:start)
+    end
+
+    it 'can have a worklow poller with a deprecated binary checksum' do
+      activity_poller = instance_double(Temporal::Activity::Poller, start: nil, stop_polling: nil,
+                                                                    cancel_pending_requests: nil, wait: nil)
+      expect(Temporal::Activity::Poller)
+        .to receive(:new)
+        .and_return(activity_poller)
+
+      workflow_poller = instance_double(Temporal::Workflow::Poller, start: nil, stop_polling: nil,
+                                                                    cancel_pending_requests: nil, wait: nil)
+      binary_checksum = 'abc123'
+      expect(Temporal::Workflow::Poller)
+        .to receive(:new)
+        .with(
+          'default-namespace',
+          'default-task-queue',
+          an_instance_of(Temporal::ExecutableLookup),
+          an_instance_of(Temporal::Configuration),
+          [],
+          [],
+          thread_pool_size: 10,
+          # will be converted to build_id
+          build_id: binary_checksum,
+          poll_retry_seconds: 0
+        )
+        .and_return(workflow_poller)
+
+      worker = Temporal::Worker.new(binary_checksum: binary_checksum)
       worker.register_workflow(TestWorkerWorkflow)
       worker.register_activity(TestWorkerActivity)
 
@@ -431,7 +467,7 @@ describe Temporal::Worker do
           an_instance_of(Temporal::Configuration),
           [],
           [],
-          {build_id: nil, poll_retry_seconds: 10, thread_pool_size: 10}
+          { build_id: nil, poll_retry_seconds: 10, thread_pool_size: 10 }
         )
         .and_return(workflow_poller)
 
