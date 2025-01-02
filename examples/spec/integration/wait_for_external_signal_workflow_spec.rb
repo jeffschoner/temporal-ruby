@@ -76,7 +76,7 @@ describe WaitForExternalSignalWorkflow do
         run_id: run_id,
       )
 
-      expect(result).to eq(:workflow_execution_not_found)
+      expect(result).to match("Failed to send external signal because execution with workflow ID '#{receiver_workflow_id}' could not be found or has already completed")
     end
   end
 end

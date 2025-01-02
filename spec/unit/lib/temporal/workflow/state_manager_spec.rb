@@ -508,14 +508,14 @@ describe Temporal::Workflow::StateManager do
           dispatcher.register_handler(
             history_target,
             'failed'
-          ) do |cause|
-            failed = cause
+          ) do |error|
+            failed = error
           end
 
           state_manager.apply(history.next_window)
           state_manager.apply(history.next_window)
 
-          expect(failed).to be(:SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_EXTERNAL_WORKFLOW_EXECUTION_NOT_FOUND)
+          expect(failed).to be_instance_of(Temporal::ExternalSignalExecutionNotFoundError)
         end
       end
     end

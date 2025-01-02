@@ -312,11 +312,8 @@ describe Temporal::Workflow::Context do
       expect(future.finished?).to be(false)
       expect(future.failed?).to be(false)
 
-      dispatcher.dispatch(
-        target,
-        'failed',
-        :SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_EXTERNAL_WORKFLOW_EXECUTION_NOT_FOUND
-      )
+      error = Temporal::ExternalSignalExecutionNotFoundError.new
+      dispatcher.dispatch(target, 'failed', error)
 
       expect(future.finished?).to be(true)
       expect(future.failed?).to be(true)
@@ -324,7 +321,7 @@ describe Temporal::Workflow::Context do
       # no waiting for either of these
       future.wait
 
-      expect(future.get).to eq(:workflow_execution_not_found)
+      expect(future.get).to eq(error)
     end
   end
 

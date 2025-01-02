@@ -2,7 +2,7 @@
 # This is different than using the Client#send_signal method which is
 # for signaling a workflow *from outside* any workflow.
 #
-# Returns :success or :failed
+# Returns :success on success, or a specific error message on failure
 #
 class SendSignalToExternalWorkflow < Temporal::Workflow
   def execute(signal_name, target_workflow)
@@ -11,7 +11,7 @@ class SendSignalToExternalWorkflow < Temporal::Workflow
 
     status = nil
     future.done { status = :success }
-    future.failed { |error| status = error }
+    future.failed { |error| status = error.to_s }
     future.get
     status
   end
