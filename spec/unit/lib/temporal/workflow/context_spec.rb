@@ -95,6 +95,21 @@ describe Temporal::Workflow::Context do
         workflow_context.execute_activity(MyTestActivity)
       end
     end
+
+    it "sets priority key" do
+        expect(state_manager).to receive(:schedule).with(Temporal::Workflow::Command::ScheduleActivity.new(
+          activity_id: nil,
+          activity_type: 'MyTestActivity',
+          input: [],
+          task_queue: 'default-task-queue',
+          retry_policy: nil,
+          timeouts: {execution: 315360000, run: 315360000, task: 10, schedule_to_close: nil, schedule_to_start: nil, start_to_close: 30, heartbeat: nil, default_heartbeat_throttle_interval: 30, max_heartbeat_throttle_interval: 60},
+          headers: {},
+          priority_key: 1
+        ))
+        allow(dispatcher).to receive(:register_handler)
+        workflow_context.execute_activity(MyTestActivity, options: { priority_key: 1 })
+    end
   end
 
   describe '#execute_local_activity' do

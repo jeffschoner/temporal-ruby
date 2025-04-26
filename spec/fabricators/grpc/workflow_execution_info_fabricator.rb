@@ -9,4 +9,5 @@ Fabricator(:api_workflow_execution_info, from: Temporalio::Api::Workflow::V1::Wo
   history_length { rand(100) }
   memo { Fabricate(:memo) }
   search_attributes { Fabricate(:search_attributes) }
+  priority { Temporalio::Api::Common::V1::Priority.new(priority_key: 5)}
 end

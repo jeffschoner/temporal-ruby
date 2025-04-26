@@ -42,6 +42,7 @@ module Temporal
     # @option options [Hash] :headers
     # @option options [Hash] :search_attributes
     # @option options [Integer] :start_delay determines the amount of seconds to wait before initiating a Workflow
+    # @option options [Integer] :priority_key
     #
     # @return [String] workflow's run ID
     def start_workflow(workflow, *input, options: {}, **args)
@@ -68,7 +69,8 @@ module Temporal
           headers: config.header_propagator_chain.inject(execution_options.headers),
           memo: execution_options.memo,
           search_attributes: Workflow::Context::Helpers.process_search_attributes(execution_options.search_attributes),
-          start_delay: execution_options.start_delay
+          start_delay: execution_options.start_delay,
+          priority_key: options[:priority_key]
         )
       else
         raise ArgumentError, 'If signal_input is provided, you must also provide signal_name' if signal_name.nil?
@@ -88,7 +90,8 @@ module Temporal
           search_attributes: Workflow::Context::Helpers.process_search_attributes(execution_options.search_attributes),
           signal_name: signal_name,
           signal_input: signal_input,
-          start_delay: execution_options.start_delay
+          start_delay: execution_options.start_delay,
+          priority_key: options[:priority_key]
         )
       end
 
@@ -112,6 +115,7 @@ module Temporal
     # @option options [Hash] :timeouts check Temporal::Configuration::DEFAULT_TIMEOUTS
     # @option options [Hash] :headers
     # @option options [Hash] :search_attributes
+    # @option options [Integer] :priority_key
     #
     # @return [String] workflow's run ID
     def schedule_workflow(workflow, cron_schedule, *input, options: {}, **args)
@@ -137,6 +141,7 @@ module Temporal
         cron_schedule: cron_schedule,
         memo: execution_options.memo,
         search_attributes: Workflow::Context::Helpers.process_search_attributes(execution_options.search_attributes),
+        priority_key: options[:priority_key]
       )
 
       response.run_id

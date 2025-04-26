@@ -79,6 +79,7 @@ describe Temporal::Connection::GRPC do
           'foo-datetime-attribute' => datetime_attribute_value.utc.iso8601,
         },
         workflow_id_reuse_policy: :reject,
+        priority_key: 2
       )
 
       expect(grpc_stub).to have_received(:start_workflow_execution) do |request|
@@ -100,6 +101,7 @@ describe Temporal::Connection::GRPC do
           'foo-bool-attribute' => Temporalio::Api::Common::V1::Payload.new(data: 'false', metadata: { 'encoding' => 'json/plain' }),
           'foo-datetime-attribute' => Temporalio::Api::Common::V1::Payload.new(data: "\"#{datetime_attribute_value.utc.iso8601}\"", metadata: { 'encoding' => 'json/plain' }),
         })
+        expect(request.priority.priority_key).to eq(2)
       end
     end
 
