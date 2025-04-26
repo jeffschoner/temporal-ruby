@@ -667,25 +667,26 @@ describe Temporal::Connection::GRPC do
     end
 
     before do
-      allow(grpc_stub).to receive(:poll_activity_task_queue).with(anything, return_op: true).and_return(poll_request)
+      allow(grpc_stub).to receive(:poll_activity_task_queue).and_return(poll_request)
     end
 
     it 'makes an API request' do
       subject.poll_activity_task_queue(namespace: namespace, task_queue: task_queue)
 
-      expect(grpc_stub).to have_received(:poll_activity_task_queue) do |request|
+      expect(grpc_stub).to have_received(:poll_activity_task_queue) do |request, kwargs|
         expect(request).to be_an_instance_of(Temporalio::Api::WorkflowService::V1::PollActivityTaskQueueRequest)
         expect(request.namespace).to eq(namespace)
         expect(request.task_queue.name).to eq(task_queue)
         expect(request.identity).to eq(identity)
         expect(request.task_queue_metadata).to be_nil
+        expect(kwargs[:return_op]).to be(true)
       end
     end
 
     it 'makes an API request with max_tasks_per_second in the metadata' do
       subject.poll_activity_task_queue(namespace: namespace, task_queue: task_queue, max_tasks_per_second: 10)
 
-      expect(grpc_stub).to have_received(:poll_activity_task_queue) do |request|
+      expect(grpc_stub).to have_received(:poll_activity_task_queue) do |request, kwargs|
         expect(request).to be_an_instance_of(Temporalio::Api::WorkflowService::V1::PollActivityTaskQueueRequest)
         expect(request.namespace).to eq(namespace)
         expect(request.task_queue.name).to eq(task_queue)
@@ -693,6 +694,7 @@ describe Temporal::Connection::GRPC do
         expect(request.task_queue_metadata).to_not be_nil
         expect(request.task_queue_metadata.max_tasks_per_second).to_not be_nil
         expect(request.task_queue_metadata.max_tasks_per_second.value).to eq(10)
+        expect(kwargs[:return_op]).to be(true)
       end
     end
   end
@@ -783,7 +785,7 @@ describe Temporal::Connection::GRPC do
           namespace
         )
       end.to raise_error(Temporal::InvalidSearchAttributeTypeFailure) do |e|
-        expect(e.to_s).to eq('Cannot add search attributes ({"SomeBadField"=>:foo}): unknown search attribute type :foo, supported types: [:text, :keyword, :int, :double, :bool, :datetime, :keyword_list]')
+        expect(e.to_s).to eq('Cannot add search attribute SomeBadField: unknown search attribute type :foo, supported types: [:text, :keyword, :int, :double, :bool, :datetime, :keyword_list]')
       end
     end
   end

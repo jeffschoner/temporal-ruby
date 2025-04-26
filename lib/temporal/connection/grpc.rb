@@ -523,11 +523,11 @@ module Temporal
       end
 
       def add_custom_search_attributes(attributes, namespace)
-        attributes.each_value do |symbol_type|
+        attributes.each do |attribute_name, symbol_type|
           next if SYMBOL_TO_INDEXED_VALUE_TYPE.include?(symbol_type)
 
           raise Temporal::InvalidSearchAttributeTypeFailure,
-                "Cannot add search attributes (#{attributes}): unknown search attribute type :#{symbol_type}, supported types: #{SYMBOL_TO_INDEXED_VALUE_TYPE.keys}"
+                "Cannot add search attribute #{attribute_name}: unknown search attribute type :#{symbol_type}, supported types: #{SYMBOL_TO_INDEXED_VALUE_TYPE.keys}"
         end
 
         request = Temporalio::Api::OperatorService::V1::AddSearchAttributesRequest.new(

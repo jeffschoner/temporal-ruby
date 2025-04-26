@@ -50,7 +50,8 @@ describe Temporal::Workflow::StackTraceTracker do
       expect(first_stack).to include("record_two_function")
 
       second_stack = stack_traces[2]
-      expect(second_stack).to include("block in record_two_function")
+      # Different versions of Ruby format blocks in stack traces differently
+      expect(second_stack).to match("block in.*record_two_function")
     end
   end
 end
