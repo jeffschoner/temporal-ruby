@@ -22,6 +22,7 @@ describe Temporal::Workflow::ExecutionInfo do
       expect(subject.history_length).to eq(api_info.history_length)
       expect(subject.memo).to eq({ 'foo' => 'bar' })
       expect(subject.search_attributes).to eq({ 'foo' => 'bar' })
+      expect(subject.priority_key).to eq(5)
     end
 
     it 'freezes the info' do

@@ -32,6 +32,9 @@ module Temporal
                 memo: serialize_memo(object.memo),
                 workflow_id_reuse_policy: Temporal::Connection::Serializer::WorkflowIdReusePolicy.new(object.workflow_id_reuse_policy, converter).to_proto,
                 search_attributes: serialize_search_attributes(object.search_attributes),
+                priority: object.priority_key.nil? ? nil : Temporalio::Api::Common::V1::Priority.new(
+                  priority_key: object.priority_key
+                )
               )
           )
         end

@@ -19,7 +19,10 @@ module Temporal
                 start_to_close_timeout: object.timeouts[:start_to_close],
                 heartbeat_timeout: object.timeouts[:heartbeat],
                 retry_policy: Temporal::Connection::Serializer::RetryPolicy.new(object.retry_policy, converter).to_proto,
-                header: serialize_headers(object.headers)
+                header: serialize_headers(object.headers),
+                priority: object.priority_key.nil? ? nil : Temporalio::Api::Common::V1::Priority.new(
+                  priority_key: object.priority_key
+                )
               )
           )
         end

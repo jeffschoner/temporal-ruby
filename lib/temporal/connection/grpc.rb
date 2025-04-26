@@ -121,7 +121,8 @@ module Temporal
         cron_schedule: nil,
         memo: nil,
         search_attributes: nil,
-        start_delay: nil
+        start_delay: nil,
+        priority_key: nil
       )
         request = Temporalio::Api::WorkflowService::V1::StartWorkflowExecutionRequest.new(
           identity: identity,
@@ -149,6 +150,9 @@ module Temporal
           ),
           search_attributes: Temporalio::Api::Common::V1::SearchAttributes.new(
             indexed_fields: converter.to_payload_map_without_codec(search_attributes || {})
+          ),
+          priority: priority_key.nil? ? nil : Temporalio::Api::Common::V1::Priority.new(
+            priority_key: priority_key
           )
         )
 
@@ -382,7 +386,8 @@ module Temporal
         cron_schedule: nil,
         memo: nil,
         search_attributes: nil,
-        start_delay: nil
+        start_delay: nil,
+        priority_key: nil
       )
         proto_header_fields = if headers.nil?
                                 converter.to_payload_map({})
@@ -422,6 +427,9 @@ module Temporal
           ),
           search_attributes: Temporalio::Api::Common::V1::SearchAttributes.new(
             indexed_fields: converter.to_payload_map_without_codec(search_attributes || {})
+          ),
+          priority: priority_key.nil? ? nil : Temporalio::Api::Common::V1::Priority.new(
+            priority_key: priority_key
           )
         )
 
@@ -523,11 +531,11 @@ module Temporal
       end
 
       def add_custom_search_attributes(attributes, namespace)
-        attributes.each_value do |symbol_type|
+        attributes.each do |attribute_name, symbol_type|
           next if SYMBOL_TO_INDEXED_VALUE_TYPE.include?(symbol_type)
 
           raise Temporal::InvalidSearchAttributeTypeFailure,
-                "Cannot add search attributes (#{attributes}): unknown search attribute type :#{symbol_type}, supported types: #{SYMBOL_TO_INDEXED_VALUE_TYPE.keys}"
+                "Cannot add search attribute #{attribute_name}: unknown search attribute type :#{symbol_type}, supported types: #{SYMBOL_TO_INDEXED_VALUE_TYPE.keys}"
         end
 
         request = Temporalio::Api::OperatorService::V1::AddSearchAttributesRequest.new(

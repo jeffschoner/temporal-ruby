@@ -65,7 +65,8 @@ describe Temporal::Client do
             headers: { 'test' => 'asdf' },
             memo: {},
             search_attributes: {},
-            start_delay: 0
+            start_delay: 0,
+            priority_key: nil
           )
       end
     end
@@ -95,7 +96,9 @@ describe Temporal::Client do
             headers: {},
             memo: {},
             search_attributes: {},
-            start_delay: 0
+            start_delay: 0,
+            priority_key: nil
+
           )
       end
 
@@ -111,7 +114,8 @@ describe Temporal::Client do
             workflow_id_reuse_policy: :reject,
             memo: { 'MemoKey1' => 'MemoValue1' },
             search_attributes: { 'SearchAttribute1' => 256 },
-            start_delay: 10
+            start_delay: 10,
+            priority_key: 3
           }
         )
 
@@ -130,7 +134,8 @@ describe Temporal::Client do
             headers: { 'Foo' => 'Bar' },
             memo: { 'MemoKey1' => 'MemoValue1' },
             search_attributes: { 'SearchAttribute1' => 256 },
-            start_delay: 10
+            start_delay: 10,
+            priority_key: 3
           )
       end
 
@@ -158,7 +163,8 @@ describe Temporal::Client do
             headers: {},
             memo: {},
             search_attributes: {},
-            start_delay: 0
+            start_delay: 0,
+            priority_key: nil
           )
       end
 
@@ -180,7 +186,8 @@ describe Temporal::Client do
             headers: {},
             memo: {},
             search_attributes: {},
-            start_delay: 0
+            start_delay: 0,
+            priority_key: nil
           )
       end
 
@@ -204,7 +211,8 @@ describe Temporal::Client do
             headers: {},
             memo: {},
             search_attributes: {},
-            start_delay: 0
+            start_delay: 0,
+            priority_key: nil
           )
       end
     end
@@ -232,7 +240,8 @@ describe Temporal::Client do
             headers: {},
             memo: {},
             search_attributes: {},
-            start_delay: 0
+            start_delay: 0,
+            priority_key: nil
           )
       end
     end
@@ -263,7 +272,8 @@ describe Temporal::Client do
           search_attributes: {},
           signal_name: 'the question',
           signal_input: expected_signal_argument,
-          start_delay: 0
+          start_delay: 0,
+          priority_key: nil
         )
     end
 
@@ -344,6 +354,7 @@ describe Temporal::Client do
           memo: {},
           search_attributes: {},
           headers: {},
+          priority_key: nil
         )
     end
   end

@@ -21,6 +21,7 @@ describe Temporal::Connection::Serializer::StartChildWorkflow do
       headers: nil,
       memo: {},
       search_attributes: {},
+      priority_key: 4
     )
   end
 
@@ -49,6 +50,7 @@ describe Temporal::Connection::Serializer::StartChildWorkflow do
         result = described_class.new(command, converter).to_proto
         attribs = result.start_child_workflow_execution_command_attributes
         expect(attribs.parent_close_policy).to eq(expected_parent_close_policy)
+        expect(attribs.priority.priority_key).to eq(4)
       end
     end
   end

@@ -88,7 +88,8 @@ module Temporal
           task_queue: execution_options.task_queue,
           retry_policy: execution_options.retry_policy,
           timeouts: execution_options.timeouts,
-          headers: config.header_propagator_chain.inject(execution_options.headers)
+          headers: config.header_propagator_chain.inject(execution_options.headers),
+          priority_key: options[:priority_key]
         )
 
         target, cancelation_id = schedule_command(command)
@@ -150,6 +151,7 @@ module Temporal
           memo: execution_options.memo,
           workflow_id_reuse_policy: workflow_id_reuse_policy,
           search_attributes: Helpers.process_search_attributes(execution_options.search_attributes),
+          priority_key: options[:priority_key]
         )
 
         target, cancelation_id = schedule_command(command)
